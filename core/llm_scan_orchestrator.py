@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 from typing import List, Dict, Any, Optional
 from shared.models import AppMap, AttackResult
 from core.llm_crawler import LLMCrawler
@@ -39,8 +40,9 @@ class LLMScanOrchestrator:
             try:
                 self.session_store = login_all_roles(self.target_url, self.credentials)
                 print("[+] Authentication successful")
-            except Exception:
-                print("[-] Authentication failed, continuing without session")
+            except Exception as e:
+                print(f"[-] Authentication failed: {type(e).__name__}: {e}")
+                traceback.print_exc()
                 self.session_store = None
             
             # Step 2: Crawl endpoints
@@ -49,8 +51,9 @@ class LLMScanOrchestrator:
                 crawler = LLMCrawler(self.target_url, self.session_store)
                 self.app_map = await crawler.crawl()
                 print(f"[+] Discovered {len(self.app_map.endpoints)} endpoints")
-            except Exception:
-                print("[-] Crawling failed")
+            except Exception as e:
+                print(f"[-] Crawling failed: {type(e).__name__}: {e}")
+                traceback.print_exc()
                 return self._build_report()
             
             # Step 3: Generate payloads and execute attacks
@@ -60,20 +63,42 @@ class LLMScanOrchestrator:
             
             attack_count = 0
             
+            if not self.app_map or not self.app_map.endpoints:
+                print("[-] No endpoints to attack")
+                return self._build_report()
+            
+            print(f"[*] Total endpoints to test: {len(self.app_map.endpoints)}")
+            
             for endpoint in self.app_map.endpoints:
                 try:
+                    print(f"[*] Endpoint: {endpoint.url}")
+                    
                     # Generate payloads for endpoint
-                    payloads = payload_gen.generate(endpoint)
+                    print(f"[*] Calling payload generator...")
+                    try:
+                        payloads = payload_gen.generate(endpoint)
+                        print(f"[*] Payloads generated: {len(payloads)}")
+                    except Exception as e:
+                        print(f"[-] Payload generation failed: {type(e).__name__}: {e}")
+                        traceback.print_exc()
+                        continue
                     
                     for payload in payloads:
                         try:
+                            print(f"[*] Attacking {endpoint.url} with {payload}")
+                            
                             # Execute attack
-                            attack_result = await execute_attack(
-                                endpoint=endpoint,
-                                payload=payload,
-                                session_store=self.session_store
-                            )
-                            attack_count += 1
+                            try:
+                                attack_result = await execute_attack(
+                                    endpoint=endpoint,
+                                    payload=payload,
+                                    session_store=self.session_store
+                                )
+                                attack_count += 1
+                            except Exception as e:
+                                print(f"[-] Attack execution failed: {type(e).__name__}: {e}")
+                                traceback.print_exc()
+                                continue
                             
                             # Analyze result
                             analysis = analyzer.analyze(attack_result)
@@ -104,11 +129,13 @@ class LLMScanOrchestrator:
                                 self.confirmed_vulns.append(vuln_entry)
                                 print(f"[!] VULNERABILITY: {vuln_entry['type']} at {endpoint.url}")
                         
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            print(f"[-] Payload processing error: {type(e).__name__}: {e}")
+                            traceback.print_exc()
                 
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"[-] Endpoint processing error: {type(e).__name__}: {e}")
+                    traceback.print_exc()
             
             print(f"[+] Executed {attack_count} attacks")
             print(f"[+] Found {len(self.confirmed_vulns)} confirmed vulnerabilities")
@@ -120,8 +147,9 @@ class LLMScanOrchestrator:
                 try:
                     narrative = analyzer.generate_narrative(self.confirmed_vulns)
                     print("[+] Narrative generated")
-                except Exception:
-                    print("[-] Narrative generation failed")
+                except Exception as e:
+                    print(f"[-] Narrative generation failed: {type(e).__name__}: {e}")
+                    traceback.print_exc()
             
             # Step 5: Build final report
             print("[*] Step 5: Building final report...")
@@ -131,8 +159,9 @@ class LLMScanOrchestrator:
             print("[+] Scan complete")
             return report
         
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[-] ORCHESTRATOR ERROR: {type(e).__name__}: {e}")
+            traceback.print_exc()
         
         return self._build_report()
     
