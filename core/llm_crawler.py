@@ -4,6 +4,7 @@ import json
 import os
 import traceback
 from typing import List, Optional, Dict, Any, Set
+from urllib.parse import urljoin
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from shared.models import AppMap, Endpoint
@@ -71,19 +72,40 @@ class LLMCrawler:
                         break
                     
                     ep_url = ep_data.get("url", "").strip()
-                    if not ep_url or ep_url in self.visited_urls:
+                    if not ep_url:
+                        continue
+                    
+                    # Convert relative URLs to absolute
+                    abs_url = urljoin(self.target_url, ep_url)
+                    
+                    # Skip external URLs (not part of target domain)
+                    if not abs_url.startswith(self.target_url):
+                        print(f"[*] Skipping external URL: {abs_url}")
+                        continue
+                    
+                    # Skip if already visited
+                    if abs_url in self.visited_urls:
                         continue
                     
                     # Create Endpoint object
                     try:
                         endpoint = Endpoint(
-                            url=ep_url,
+                            url=abs_url,
                             method=ep_data.get("method", "GET").upper(),
                             params=ep_data.get("params", []),
-                            auth_required=bool(ep_data.get("auth_required", False))
+                            auth_required=bool(ep_data.get("auth_required", False)),
+                            roles_allowed=[]
                         )
                         self.endpoints.append(endpoint)
-                        to_visit.append(ep_url)
+                        
+                        # Only crawl HTML pages, not API endpoints
+                        # Skip /api/ and /rest/ from recursive crawling
+                        if "/api/" not in abs_url and "/rest/" not in abs_url:
+                            to_visit.append(abs_url)
+                            print(f"[*] Added {abs_url} to crawl queue")
+                        else:
+                            print(f"[*] Added API endpoint (not crawling): {abs_url}")
+                        
                         endpoint_count += 1
                     except Exception as e:
                         print(f"[-] Failed to create endpoint: {e}")
@@ -94,7 +116,8 @@ class LLMCrawler:
             # Build AppMap
             app_map = AppMap(
                 target_url=self.target_url,
-                endpoints=self.endpoints
+                endpoints=self.endpoints,
+                roles=self.session_store.all_roles() if self.session_store else []
             )
             print(f"[+] Crawl complete: discovered {len(self.endpoints)} endpoints")
             return app_map
@@ -104,7 +127,7 @@ class LLMCrawler:
             traceback.print_exc()
         
         # Return empty AppMap on failure
-        return AppMap(target_url=self.target_url, endpoints=[])
+        return AppMap(target_url=self.target_url, endpoints=[], roles=[])
     
     async def _fetch_html(self, url: str) -> Optional[str]:
         """Fetch HTML content from URL via httpx async."""
