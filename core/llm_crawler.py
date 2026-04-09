@@ -2,9 +2,14 @@ import asyncio
 import httpx
 import json
 import os
+import traceback
 from typing import List, Optional, Dict, Any, Set
+from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from shared.models import AppMap, Endpoint
+
+# Load environment variables
+load_dotenv()
 
 
 class LLMCrawler:
@@ -19,6 +24,7 @@ class LLMCrawler:
         
         # Initialize LLM with FAST model from env
         llm_model = os.getenv("LLM_MODEL_FAST", "llama-3.1-8b-instant")
+        print(f"[*] Using LLM model: {llm_model}")
         self.llm = ChatGroq(model=llm_model, temperature=0.0)
         
         # httpx client timeout
@@ -43,16 +49,23 @@ class LLMCrawler:
                 self.visited_urls.add(url)
                 
                 # Fetch HTML from URL
+                print(f"[*] Fetching homepage...")
                 html = await self._fetch_html(url)
                 if not html:
+                    print(f"[-] Failed to fetch HTML from {url}")
                     continue
                 
+                print(f"[*] Fetched {len(html)} bytes from {url}")
+                
                 # Analyze HTML with LLM
+                print(f"[*] Sending HTML to LLM...")
                 discovered = await self._analyze_html_with_llm(html)
                 if not discovered:
+                    print(f"[-] LLM analysis returned no results")
                     continue
                 
                 # Process discovered endpoints
+                endpoint_count = 0
                 for ep_data in discovered.get("endpoints", []):
                     if len(self.endpoints) >= self.max_endpoints:
                         break
@@ -71,18 +84,24 @@ class LLMCrawler:
                         )
                         self.endpoints.append(endpoint)
                         to_visit.append(ep_url)
-                    except Exception:
+                        endpoint_count += 1
+                    except Exception as e:
+                        print(f"[-] Failed to create endpoint: {e}")
                         pass
+                
+                print(f"[*] Parsed endpoints: {endpoint_count}")
             
             # Build AppMap
             app_map = AppMap(
                 target_url=self.target_url,
                 endpoints=self.endpoints
             )
+            print(f"[+] Crawl complete: discovered {len(self.endpoints)} endpoints")
             return app_map
         
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[-] CRAWL ERROR: {type(e).__name__}: {e}")
+            traceback.print_exc()
         
         # Return empty AppMap on failure
         return AppMap(target_url=self.target_url, endpoints=[])
@@ -99,8 +118,11 @@ class LLMCrawler:
                 )
                 if response.status_code == 200:
                     return response.text
-        except Exception:
-            pass
+                else:
+                    print(f"[-] HTTP {response.status_code} from {url}")
+        except Exception as e:
+            print(f"[-] FETCH ERROR: {type(e).__name__}: {e}")
+            traceback.print_exc()
         
         return None
     
@@ -123,6 +145,8 @@ HTML:
             response = self.llm.invoke(prompt)
             response_text = response.content if hasattr(response, 'content') else str(response)
             
+            print(f"[*] LLM raw response: {response_text[:200]}...")
+            
             # Extract JSON from response
             json_str = response_text.strip()
             
@@ -139,7 +163,12 @@ HTML:
             data = json.loads(json_str.strip())
             return data
         
-        except Exception:
-            pass
-        
-        return None
+        except json.JSONDecodeError as e:
+            print(f"[-] JSON PARSE ERROR: {e}")
+            print(f"[-] Response was: {response_text[:500] if 'response_text' in locals() else 'N/A'}")
+            traceback.print_exc()
+            return None
+        except Exception as e:
+            print(f"[-] LLM ANALYSIS ERROR: {type(e).__name__}: {e}")
+            traceback.print_exc()
+            return None
