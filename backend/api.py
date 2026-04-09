@@ -118,6 +118,22 @@ async def run_scan(req: ScanRequest):
         ]
         scan_state["logs"].append(f"Discovered {len(scan_state['endpoints'])} endpoints")
 
+        # Crawler insight — LLM static vuln analysis
+        from agent.crawler_insight import analyze_crawl_data
+        scan_state["logs"].append("Running LLM crawler insight analysis...")
+        insight_vulns = analyze_crawl_data(scan_state["endpoints"], req.target_url)
+        for v in insight_vulns:
+            scan_state["vulns"].append({
+                "id": str(uuid.uuid4()),
+                "type": v.get("type", "Unknown"),
+                "severity": v.get("severity", "Medium"),
+                "evidence": v.get("evidence", ""),
+                "narrative": v.get("narrative", ""),
+                "fp_score": 0.15,
+                "chain": []
+            })
+        scan_state["logs"].append(f"Crawler insight found {len(insight_vulns)} static vulns.")
+
         if not app_map.endpoints:
             scan_state["phase"] = "done"
             scan_state["progress"] = 100
@@ -134,13 +150,42 @@ async def run_scan(req: ScanRequest):
         scan_state["progress"] = 50
         scan_state["current_action"] = "Running attack chain..."
 
-        dummy_result = AttackResult(
-            endpoint=app_map.endpoints[0],
-            payload={"id": "2"},
-            response_code=200,
-            response_body='{"id":2,"email":"victim@juice-sh.op","role":"customer"}',
-            diff_from_baseline="Length diff: 50 chars."
-        )
+
+        # --- Additional vulnerability checks ---
+        from core.vuln_checks import check_crlf, run_sqlmap
+
+        # CRLF Injection checks on first 5 endpoints
+        scan_state["logs"].append("Running CRLF injection checks...")
+        for ep in app_map.endpoints[:5]:
+            result = await check_crlf(ep, session_store)
+            scan_state["logs"].append(f"CRLF check on {ep.method} {ep.url}: {'vulnerable' if result['vulnerable'] else 'safe'}")
+            if result["vulnerable"]:
+                scan_state["vulns"].append({
+                    "id": str(uuid.uuid4()),
+                    "type": "CRLF Injection",
+                    "severity": "High",
+                    "evidence": result["evidence"],
+                    "payload": result["payload"],
+                    "narrative": "CRLF injection detected — attacker can inject arbitrary HTTP headers.",
+                    "fp_score": 0.1,
+                    "chain": []
+                })
+
+        # SQLMap check on first endpoint
+        scan_state["logs"].append("Running SQLMap on first endpoint...")
+        sqlmap_result = await run_sqlmap(req.target_url, app_map.endpoints[0])
+        scan_state["logs"].append(f"SQLMap check on {app_map.endpoints[0].url}: {'vulnerable' if sqlmap_result['vulnerable'] else 'safe'}")
+        if sqlmap_result["vulnerable"]:
+            scan_state["vulns"].append({
+                "id": str(uuid.uuid4()),
+                "type": "SQL Injection via SQLMap",
+                "severity": "Critical",
+                "evidence": sqlmap_result["evidence"],
+                "payload": "sqlmap automated scan",
+                "narrative": "SQL injection detected via SQLMap — database may be exposed to data exfiltration or manipulation.",
+                "fp_score": 0.05,
+                "chain": []
+            })
 
         scan_state["phase"] = "analyzing"
         scan_state["progress"] = 70
@@ -150,10 +195,12 @@ async def run_scan(req: ScanRequest):
         final_state = agent.invoke({
             "app_map": app_map,
             "hypotheses": [],
-            "attack_results": [dummy_result],
+            "attack_results": [],
             "confirmed_vulns": [],
-            "logs": []
-        })
+            "logs": [],
+            "session_store": session_store,
+            "target_url": req.target_url
+})
 
         for log in final_state["logs"]:
             scan_state["logs"].append(log)
@@ -166,7 +213,9 @@ async def run_scan(req: ScanRequest):
             n_id = vuln["id"]
             nodes.append({"id": n_id, "label": vuln["type"], "type": "vuln"})
             ep_id = f"ep_{n_id}"
-            nodes.append({"id": ep_id, "label": vuln["chain"][0]["endpoint"]["url"], "type": "endpoint"})
+            ep = vuln["chain"][0]["endpoint"]
+            ep_url = ep.url if hasattr(ep, "url") else ep.get("url", "unknown")
+            nodes.append({"id": ep_id, "label": ep_url, "type": "endpoint"})
             edges.append({"source": ep_id, "target": n_id, "label": "exploited via"})
 
         scan_state["graph"] = {"nodes": nodes, "edges": edges}
@@ -188,3 +237,4 @@ async def run_scan(req: ScanRequest):
         import traceback
         scan_state["phase"] = "error"
         scan_state["logs"].append(f"Error detail: {traceback.format_exc()}")
+        print(f"[SCAN ERROR] {traceback.format_exc()}")

@@ -36,7 +36,7 @@ async def execute_attack(
     """
     try:
         # Build full URL
-        full_url = urljoin(target_url, endpoint.path)
+        full_url = urljoin(target_url, endpoint.url)
         
         # Prepare headers
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
@@ -71,52 +71,21 @@ async def execute_attack(
                     cookies=cookies
                 )
             
-            elif endpoint.method.upper() in ["POST", "PUT", "PATCH"]:
+            elif endpoint.method.upper() == "POST":
                 # Send payload as JSON body
-                method = endpoint.method.upper()
-                
-                if method == "POST":
-                    response = await client.post(
-                        full_url,
-                        json=payload,
-                        headers=headers,
-                        cookies=cookies
-                    )
-                elif method == "PUT":
-                    response = await client.put(
-                        full_url,
-                        json=payload,
-                        headers=headers,
-                        cookies=cookies
-                    )
-                elif method == "PATCH":
-                    response = await client.patch(
-                        full_url,
-                        json=payload,
-                        headers=headers,
-                        cookies=cookies
-                    )
-            
-            elif endpoint.method.upper() == "DELETE":
-                response = await client.delete(
+                response = await client.post(
                     full_url,
+                    json=payload,
                     headers=headers,
                     cookies=cookies
                 )
-            
-            elif endpoint.method.upper() == "HEAD":
-                response = await client.head(
-                    full_url,
-                    headers=headers,
-                    cookies=cookies
-                )
-            
             else:
-                # Default to GET
-                response = await client.get(
-                    full_url,
-                    headers=headers,
-                    cookies=cookies
+                return AttackResult(
+                    endpoint=endpoint,
+                    payload=payload,
+                    response_code=0,
+                    response_body="Skipped unhandled method",
+                    diff_from_baseline=None
                 )
             
             # Extract response data
@@ -135,13 +104,10 @@ async def execute_attack(
             
             # Create and return AttackResult
             result = AttackResult(
-                endpoint_path=endpoint.path,
-                method=endpoint.method,
-                status_code=status_code,
-                response_headers=response_headers,
+                endpoint=endpoint,
+                payload=payload,
+                response_code=status_code,
                 response_body=response_body,
-                payload_sent=payload,
-                role_used=role,
                 diff_from_baseline=diff
             )
             
@@ -154,13 +120,10 @@ async def execute_attack(
             error_msg = error_msg[:2000] + "...[truncated]"
         
         result = AttackResult(
-            endpoint_path=endpoint.path,
-            method=endpoint.method,
-            status_code=0,
-            response_headers={},
+            endpoint=endpoint,
+            payload=payload,
+            response_code=0,
             response_body=f"ERROR: {error_msg}",
-            payload_sent=payload,
-            role_used=role,
             diff_from_baseline=None
         )
         

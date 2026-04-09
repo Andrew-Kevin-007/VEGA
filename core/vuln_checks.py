@@ -5,6 +5,13 @@ No execution logic — payloads only.
 """
 
 from typing import List, Dict, Any, Callable
+import asyncio
+import httpx
+import urllib.parse
+import os
+import shutil
+from shared.models import Endpoint
+from core.session_store import SessionStore
 
 
 # SQL Injection Payloads
@@ -310,3 +317,59 @@ def get_payloads_for_param(param_name: str, param_value: Any = None) -> List[Dic
             })
     
     return payloads
+
+async def check_crlf(endpoint: Endpoint, session_store: SessionStore) -> dict:
+    roles = session_store.all_roles()
+    headers = session_store.get_headers(roles[0]) if roles else {}
+    cookies = session_store.get_cookies(roles[0]) if roles else {}
+    
+    payload = "%0d%0aSet-Cookie:injected=1"
+    target_url = endpoint.url
+    
+    if "?" in target_url:
+        injected_url = target_url + "&crlf=" + payload
+    else:
+        injected_url = target_url + "?crlf=" + payload
+        
+    async with httpx.AsyncClient(verify=False, timeout=10.0) as client:
+        try:
+            resp = await client.get(injected_url, headers=headers, cookies=cookies)
+            headers_str = str(resp.headers)
+            if "injected=1" in headers_str or "\r\n" in resp.text:
+                return {"vulnerable": True, "evidence": "CRLF injection successful (header injected or \\r\\n reflected)", "payload": payload}
+            return {"vulnerable": False, "evidence": "No CRLF injection detected", "payload": payload}
+        except Exception as e:
+            return {"vulnerable": False, "evidence": str(e), "payload": payload}
+
+async def run_sqlmap(target_url: str, endpoint: Endpoint) -> dict:
+    if not shutil.which("sqlmap") and not shutil.which("sqlmap.py"):
+        return {"vulnerable": False, "evidence": "sqlmap not installed"}
+        
+    full_url = urllib.parse.urljoin(target_url, endpoint.url)
+    out_dir = r"D:\VEGA_v3\sqlmap_output"
+    
+    cmd = [
+        "sqlmap",
+        "-u", full_url,
+        "--batch",
+        "--level=1",
+        "--risk=1",
+        "--output-dir=" + out_dir
+    ]
+    
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await proc.communicate()
+        
+        stdout_str = stdout.decode('utf-8', errors='ignore')
+        
+        if "is vulnerable" in stdout_str.lower() or "parameter is vulnerable" in stdout_str.lower():
+            return {"vulnerable": True, "evidence": "sqlmap found vulnerability"}
+            
+        return {"vulnerable": False, "evidence": "sqlmap found no vulnerabilities"}
+    except Exception as e:
+        return {"vulnerable": False, "evidence": str(e)}

@@ -5,7 +5,7 @@ from agent.prompts import FP_REDUCER_SYSTEM
 
 load_dotenv()
 
-llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.1)
+llm = ChatGroq(model="llama3-8b-8192", temperature=0.1)
 
 def reduce_false_positive(vuln_candidate: dict, evidence: str) -> dict:
     prompt = f"""

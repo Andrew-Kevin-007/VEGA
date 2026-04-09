@@ -8,9 +8,10 @@ load_dotenv()
 llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.3)
 
 def generate_hypotheses(app_map) -> list:
+    endpoints_sample = app_map.endpoints[:15]
     prompt = f"""
     App target: {app_map.target_url}
-    Discovered endpoints: {[e.__dict__ for e in app_map.endpoints]}
+    Discovered endpoints: {[e.__dict__ for e in endpoints_sample]}
     Roles available: {app_map.roles}
 
     Generate attack hypotheses covering:

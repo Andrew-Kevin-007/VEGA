@@ -8,6 +8,8 @@ from agent.narrator import generate_narrative
 from agent.risk_scorer import score_risk
 from shared.models import AppMap, VulnReport, AttackResult
 import uuid
+import asyncio
+from core.request_engine import execute_attack
 
 load_dotenv()
 
@@ -17,6 +19,8 @@ class AgentState(TypedDict):
     attack_results: List[Any]
     confirmed_vulns: List[dict]
     logs: List[str]
+    session_store: Any
+    target_url: str
 
 def hypothesize_node(state: AgentState) -> AgentState:
     state["logs"].append("Generating attack hypotheses from app map...")
@@ -52,14 +56,76 @@ def analyze_node(state: AgentState) -> AgentState:
                 state["logs"].append(f"Confirmed vuln: {analysis['vuln_type']} [{severity}]")
             else:
                 state["logs"].append(f"Filtered false positive: {analysis['vuln_type']}")
+    from agent.cve_lookup import lookup_cves
+    for vuln in confirmed:
+        vuln["cves"] = lookup_cves(vuln["type"], vuln["evidence"])
     state["confirmed_vulns"] = confirmed
+    return state
+
+def execute_node(state: AgentState) -> AgentState:
+    state["logs"].append(f"Executing {len(state['hypotheses'])} hypotheses...")
+    
+    session_store = state["session_store"]
+    target_url = state["target_url"]
+    
+    async def _run_attacks():
+        results = []
+
+        # Filter to only target domain endpoints
+        target_host = state["target_url"].rstrip("/")
+        SKIP_PATTERNS = ["/assets/", "/media/", "/chunk-", ".js", ".css", ".jpg", ".jpeg", ".png", ".gif", ".ico", ".woff", ".svg"]
+        relevant_endpoints = [
+            ep for ep in state["app_map"].endpoints
+            if (ep.url.startswith("/") or ep.url.startswith(target_host))
+            and not any(pat in ep.url for pat in SKIP_PATTERNS)
+        ]
+
+        for hypothesis in state["hypotheses"]:
+            target_param = hypothesis.get("target_param", "")
+            payload = hypothesis.get("payload", "")
+            param = hypothesis.get("target_param", "id")
+            if not param or param.strip() == "":
+                param = "id"
+            payload = {param: hypothesis.get("payload", "")}
+
+            # Find matching endpoint
+            endpoint = relevant_endpoints[0] if relevant_endpoints else None
+            for ep in relevant_endpoints:
+                if target_param and target_param in ep.url:
+                    endpoint = ep
+                    break
+                    
+            if not endpoint:
+                continue
+                
+            if endpoint.method.upper() not in ["GET", "POST"]:
+                continue
+                
+            for role in session_store.all_roles():
+                res = await execute_attack(
+                    endpoint,
+                    {target_param: payload},
+                    session_store,
+                    role=role,
+                    target_url=target_url
+                )
+                results.append(res)
+        return results
+
+    import nest_asyncio
+    nest_asyncio.apply()
+    loop = asyncio.get_event_loop()
+    state["attack_results"] = loop.run_until_complete(_run_attacks())
+    state["logs"].append(f"Execution complete. Generated {len(state['attack_results'])} results.")
     return state
 
 def build_agent():
     graph = StateGraph(AgentState)
     graph.add_node("hypothesize", hypothesize_node)
+    graph.add_node("execute", execute_node)
     graph.add_node("analyze", analyze_node)
     graph.set_entry_point("hypothesize")
-    graph.add_edge("hypothesize", "analyze")
+    graph.add_edge("hypothesize", "execute")
+    graph.add_edge("execute", "analyze")
     graph.add_edge("analyze", END)
     return graph.compile()

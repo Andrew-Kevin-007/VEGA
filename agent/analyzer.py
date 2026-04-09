@@ -6,7 +6,7 @@ from shared.models import AttackResult
 
 load_dotenv()
 
-llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.1)
+llm = ChatGroq(model="llama3-8b-8192", temperature=0.1)
 
 def analyze_result(attack_result: AttackResult) -> dict:
     prompt = f"""
