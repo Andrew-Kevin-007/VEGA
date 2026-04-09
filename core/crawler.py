@@ -6,6 +6,8 @@ Builds an AppMap of all discovered endpoints.
 
 import asyncio
 import json
+import re
+import httpx
 from typing import Set, List, Optional
 from urllib.parse import urljoin, urlparse
 from playwright.sync_api import sync_playwright
@@ -37,10 +39,60 @@ async def crawl(target_url: str, session_store: SessionStore) -> AppMap:
 
     # Run sync crawler in executor to avoid asyncio issues on Windows
     loop = asyncio.get_event_loop()
-    endpoints = await loop.run_in_executor(
+    endpoints, js_urls = await loop.run_in_executor(
         None, _crawl_sync, target_url, headers, cookies
     )
 
+    endpoints = set(endpoints)
+
+    # Additional async steps
+    async with httpx.AsyncClient(headers=headers, cookies=cookies, verify=False, timeout=10.0) as client:
+        # 1. Direct endpoint probing
+        common_paths = [
+            '/api', '/api/v1', '/api/v2', '/rest', '/graphql', '/admin', 
+            '/swagger', '/swagger.json', '/openapi.json', '/.env', '/config', 
+            '/backup', '/debug'
+        ]
+        
+        graphql_found = False
+        
+        for path in common_paths:
+            probe_url = urljoin(target_url, path)
+            try:
+                resp = await client.get(probe_url)
+                if resp.status_code != 404:
+                    print(f"[CRAWLER] Probing found: {path} ({resp.status_code})")
+                    endpoints.add(('GET', path, ()))
+                    if path == '/graphql' and resp.status_code == 200:
+                        graphql_found = True
+            except Exception:
+                pass
+
+        # 2. GraphQL introspection
+        if graphql_found:
+            gql_url = urljoin(target_url, '/graphql')
+            try:
+                gql_resp = await client.post(gql_url, json={"query": "{ __schema { types { name } } }"})
+                if gql_resp.status_code == 200:
+                    data = gql_resp.json()
+                    types = data.get("data", {}).get("__schema", {}).get("types", [])
+                    for t in types:
+                        t_name = t.get("name")
+                        if t_name and not t_name.startswith("__"):
+                            endpoints.add(('GRAPHQL', t_name, ()))
+            except Exception as e:
+                print(f"[CRAWLER] GraphQL introspection error: {e}")
+
+        # 3. JS file scanning
+        for js_url in js_urls:
+            try:
+                js_resp = await client.get(js_url)
+                if js_resp.status_code == 200:
+                    matches = re.findall(r'["\'](/api/[^"\']+)["\']', js_resp.text)
+                    for match in matches:
+                        endpoints.add(('GET', match, ()))
+            except Exception:
+                pass
     # Convert endpoint tuples to Endpoint objects
     endpoint_objects = []
     for method, path, params in endpoints:
@@ -61,7 +113,7 @@ async def crawl(target_url: str, session_store: SessionStore) -> AppMap:
     return app_map
 
 
-def _crawl_sync(target_url: str, headers: dict, cookies: dict) -> Set[tuple]:
+def _crawl_sync(target_url: str, headers: dict, cookies: dict) -> tuple:
     """
     Sync crawler using playwright sync_api.
 
@@ -75,6 +127,7 @@ def _crawl_sync(target_url: str, headers: dict, cookies: dict) -> Set[tuple]:
     """
     endpoints: Set[tuple] = set()
     visited_urls: Set[str] = set()
+    js_urls: Set[str] = set()
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
@@ -96,6 +149,8 @@ def _crawl_sync(target_url: str, headers: dict, cookies: dict) -> Set[tuple]:
         def handle_request(request):
             try:
                 print(f"[CRAWLER] Request: {request.method} {request.url[:80]}")
+                if request.url.endswith('.js'):
+                    js_urls.add(request.url)
                 path = urlparse(request.url).path
                 method = request.method
 
@@ -183,6 +238,20 @@ def _crawl_sync(target_url: str, headers: dict, cookies: dict) -> Set[tuple]:
                     }
                 """)
 
+                # Extract script tags
+                scripts = page.evaluate("""
+                    () => {
+                        const scripts = [];
+                        document.querySelectorAll('script[src]').forEach(s => {
+                            scripts.push(s.src);
+                        });
+                        return scripts;
+                    }
+                """)
+                for script in scripts:
+                    if script.endswith('.js'):
+                        js_urls.add(script)
+
                 # Add discovered links to queue
                 for link in links:
                     try:
@@ -203,4 +272,4 @@ def _crawl_sync(target_url: str, headers: dict, cookies: dict) -> Set[tuple]:
         browser.close()
         print(f"[CRAWLER] Done. Total endpoints: {len(endpoints)}")
 
-    return endpoints
+    return endpoints, js_urls
