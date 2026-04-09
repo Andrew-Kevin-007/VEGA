@@ -37,7 +37,7 @@ class LLMScanOrchestrator:
             # Step 1: Authenticate all roles
             print("[*] Step 1: Authenticating all roles...")
             try:
-                self.session_store = await login_all_roles(self.credentials)
+                self.session_store = login_all_roles(self.target_url, self.credentials)
                 print("[+] Authentication successful")
             except Exception:
                 print("[-] Authentication failed, continuing without session")
