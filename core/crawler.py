@@ -5,9 +5,10 @@ Builds an AppMap of all discovered endpoints.
 """
 
 import asyncio
+import json
 from typing import Set, List, Optional
 from urllib.parse import urljoin, urlparse
-from playwright.async_api import async_playwright, Page, Request
+from playwright.sync_api import sync_playwright
 
 from core.session_store import SessionStore
 from shared.models import AppMap, Endpoint
@@ -16,11 +17,11 @@ from shared.models import AppMap, Endpoint
 async def crawl(target_url: str, session_store: SessionStore) -> AppMap:
     """
     Crawl target URL and discover all endpoints.
-    
+
     Args:
         target_url: Target application URL (e.g., http://localhost:3000)
         session_store: SessionStore with authenticated sessions
-        
+
     Returns:
         AppMap with all discovered endpoints
     """
@@ -28,72 +29,115 @@ async def crawl(target_url: str, session_store: SessionStore) -> AppMap:
     roles = session_store.all_roles()
     if not roles:
         print("[CRAWLER] No authenticated sessions available")
-        return AppMap(endpoints=[])
-    
+        return AppMap(target_url=target_url, endpoints=[], roles=[])
+
     first_role = roles[0]
     headers = session_store.get_headers(first_role)
     cookies = session_store.get_cookies(first_role)
-    
-    endpoints: Set[tuple] = set()  # (method, path, params_list)
+
+    # Run sync crawler in executor to avoid asyncio issues on Windows
+    loop = asyncio.get_event_loop()
+    endpoints = await loop.run_in_executor(
+        None, _crawl_sync, target_url, headers, cookies
+    )
+
+    # Convert endpoint tuples to Endpoint objects
+    endpoint_objects = []
+    for method, path, params in endpoints:
+        try:
+            endpoint = Endpoint(
+                url=path,
+                method=method,
+                params=list(params) if params else [],
+                auth_required=False,
+                roles_allowed=[]
+            )
+            endpoint_objects.append(endpoint)
+        except Exception as e:
+            print(f"[CRAWLER] Error: {e}")
+
+    # Create and return AppMap
+    app_map = AppMap(target_url=target_url, endpoints=endpoint_objects, roles=roles)
+    return app_map
+
+
+def _crawl_sync(target_url: str, headers: dict, cookies: dict) -> Set[tuple]:
+    """
+    Sync crawler using playwright sync_api.
+
+    Args:
+        target_url: Target application URL
+        headers: Authentication headers
+        cookies: Authentication cookies
+
+    Returns:
+        Set of (method, path, params) tuples
+    """
+    endpoints: Set[tuple] = set()
     visited_urls: Set[str] = set()
-    discovered_links: List[str] = []
-    
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context()
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
         
-        # Set authentication headers and cookies
-        await context.add_init_script(
-            f"Object.defineProperty(window, 'authHeaders', {{value: {headers}}})"
-        )
-        
-        page = await context.new_page()
-        
+        if headers is None:
+            headers = {}
+            
+        context = browser.new_context(extra_http_headers=headers)
+        page = context.new_page()
+
+        # Set cookies
+        if cookies:
+            context.add_cookies([
+                {"name": k, "value": v, "domain": urlparse(target_url).netloc}
+                for k, v in cookies.items()
+            ])
+
         # Setup request interception
-        async def handle_request(request: Request) -> None:
+        def handle_request(request):
             try:
+                print(f"[CRAWLER] Request: {request.method} {request.url[:80]}")
                 path = urlparse(request.url).path
                 method = request.method
-                
+
                 # Try to extract request body for POST/PUT/PATCH
                 request_data = {}
                 try:
                     if request.method in ["POST", "PUT", "PATCH"]:
                         post_data = request.post_data
                         if post_data:
-                            import json
                             request_data = json.loads(post_data)
-                except:
-                    pass
-                
+                except Exception as e:
+                    print(f"[CRAWLER] Error: {e}")
+
                 # Extract parameter names from request
                 params = list(request_data.keys()) if request_data else []
-                
-                # Add to endpoints (normalize tuple for set)
+
+                # Add to endpoints
                 endpoint_key = (method, path, tuple(sorted(params)))
                 endpoints.add(endpoint_key)
             except Exception as e:
-                pass  # Silent failure
-        
+                print(f"[CRAWLER] Error: {e}")
+
         page.on("request", handle_request)
-        
+
         # Start crawling
         queue = [target_url]
-        
+
         while queue and len(visited_urls) < 30:
             url = queue.pop(0)
-            
+
             if url in visited_urls:
                 continue
-            
+
             visited_urls.add(url)
-            
+
             try:
                 # Navigate to page
-                await page.goto(url, wait_until="networkidle", timeout=10000)
-                
+                page.goto(url, wait_until="networkidle", timeout=10000)
+                print(f"[CRAWLER] Visited: {url}, endpoints so far: {len(endpoints)}")
+
                 # Extract forms
-                forms = await page.evaluate("""
+                forms = page.evaluate("""
                     () => {
                         const forms = [];
                         document.querySelectorAll('form').forEach(form => {
@@ -112,7 +156,7 @@ async def crawl(target_url: str, session_store: SessionStore) -> AppMap:
                         return forms;
                     }
                 """)
-                
+
                 # Process extracted forms
                 for form in forms:
                     try:
@@ -122,14 +166,14 @@ async def crawl(target_url: str, session_store: SessionStore) -> AppMap:
                             action_path = urlparse(action_url).path
                             method = form.get('method', 'GET').upper()
                             inputs = form.get('inputs', [])
-                            
+
                             endpoint_key = (method, action_path, tuple(sorted(inputs)))
                             endpoints.add(endpoint_key)
-                    except:
-                        pass
-                
+                    except Exception as e:
+                        print(f"[CRAWLER] Error: {e}")
+
                 # Extract links
-                links = await page.evaluate("""
+                links = page.evaluate("""
                     () => {
                         const links = [];
                         document.querySelectorAll('a[href]').forEach(a => {
@@ -138,78 +182,25 @@ async def crawl(target_url: str, session_store: SessionStore) -> AppMap:
                         return links;
                     }
                 """)
-                
+
                 # Add discovered links to queue
                 for link in links:
                     try:
                         link_parsed = urlparse(link)
                         target_parsed = urlparse(target_url)
-                        
+
                         # Only crawl same domain
                         if link_parsed.netloc == target_parsed.netloc:
                             if link not in visited_urls and len(queue) < 30:
                                 queue.append(link)
-                    except:
-                        pass
-            
+                    except Exception as e:
+                        print(f"[CRAWLER] Error: {e}")
+
             except Exception as e:
                 # Silent failure on timeouts, 404s, etc.
-                pass
-        
-        await browser.close()
-    
-    # Convert endpoint tuples to Endpoint objects
-    endpoint_objects = []
-    for method, path, params in endpoints:
-        try:
-            endpoint = Endpoint(
-                path=path,
-                method=method,
-                parameters=list(params) if params else []
-            )
-            endpoint_objects.append(endpoint)
-        except:
-            pass
-    
-    # Create and return AppMap
-    app_map = AppMap(endpoints=endpoint_objects)
-    return app_map
+                print(f"[CRAWLER] Error: {e}")
 
+        browser.close()
+        print(f"[CRAWLER] Done. Total endpoints: {len(endpoints)}")
 
-async def _extract_json_from_request(request: Request) -> Optional[dict]:
-    """
-    Extract JSON body from request if available.
-    
-    Args:
-        request: Playwright Request object
-        
-    Returns:
-        Parsed JSON dict or None
-    """
-    try:
-        import json
-        post_data = request.post_data
-        if post_data:
-            return json.loads(post_data)
-    except:
-        pass
-    return None
-
-
-async def _is_same_domain(url: str, base_url: str) -> bool:
-    """
-    Check if URL is on same domain as base URL.
-    
-    Args:
-        url: URL to check
-        base_url: Base URL for comparison
-        
-    Returns:
-        True if same domain, False otherwise
-    """
-    try:
-        url_parsed = urlparse(url)
-        base_parsed = urlparse(base_url)
-        return url_parsed.netloc == base_parsed.netloc
-    except:
-        return False
+    return endpoints

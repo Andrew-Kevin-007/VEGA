@@ -8,8 +8,7 @@ import asyncio
 import json
 import base64
 from typing import List, Optional
-import httpx
-from playwright.async_api import async_playwright
+import requests
 
 from core.session_store import Session, SessionStore
 from shared.models import RoleCredential
@@ -38,90 +37,17 @@ async def login_all_roles(target_url: str, credentials: List[RoleCredential]) ->
 
 async def _login_role(target_url: str, credential: RoleCredential) -> Optional[Session]:
     """
-    Login a single role via Playwright or HTTP fallback.
-    
+    Login a single role via HTTP POST.
+
     Args:
         target_url: Target application URL
-        credential: RoleCredential with role, email, password
-        
+        credential: RoleCredential with role, username, password
+
     Returns:
         Session object with cookies and JWT, or None if login failed
     """
-    # Try Playwright first
-    session = await _login_via_playwright(target_url, credential)
-    if session:
-        return session
-    
-    # Fallback to HTTP POST
     return await _login_via_http(target_url, credential)
 
-
-async def _login_via_playwright(target_url: str, credential: RoleCredential) -> Optional[Session]:
-    """
-    Login via Playwright headless chromium.
-    Extracts cookies and JWT from browser context and localStorage.
-    
-    Args:
-        target_url: Target application URL
-        credential: RoleCredential with role, email, password
-        
-    Returns:
-        Session object or None if login failed
-    """
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context()
-        page = await context.new_page()
-        
-        try:
-            # Navigate to login page
-            await page.goto(f"{target_url}/#/login", wait_until="networkidle")
-            
-            # Wait for email input to be visible
-            await page.wait_for_selector('input[type="email"]', timeout=5000)
-            
-            # Fill login form
-            await page.fill('input[type="email"]', credential.email)
-            await page.fill('input[type="password"]', credential.password)
-            
-            # Submit form and wait for navigation
-            async with page.expect_response(lambda r: "/rest/user/login" in r.url) as response_info:
-                await page.click('button[type="submit"]')
-            
-            response = await response_info.value
-            response_json = await response.json()
-            
-            # Extract JWT from response
-            jwt_token = response_json.get("authentication", {}).get("token")
-            
-            # Extract cookies
-            cookies_list = await context.cookies()
-            cookies = {c["name"]: c["value"] for c in cookies_list}
-            
-            # Try to get token from localStorage as fallback
-            if not jwt_token:
-                jwt_token = await page.evaluate("() => localStorage.getItem('token')")
-            
-            # Build headers
-            headers = {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            }
-            
-            session = Session(
-                role=credential.role,
-                cookies=cookies,
-                headers=headers,
-                jwt_token=jwt_token
-            )
-            
-            await browser.close()
-            return session
-            
-        except Exception as e:
-            print(f"[AUTH] Playwright login failed for {credential.role}: {e}")
-            await browser.close()
-            return None
 
 
 async def _login_via_http(target_url: str, credential: RoleCredential) -> Optional[Session]:
@@ -136,21 +62,22 @@ async def _login_via_http(target_url: str, credential: RoleCredential) -> Option
     Returns:
         Session object or None if login failed
     """
-    async with httpx.AsyncClient(follow_redirects=True, verify=False) as client:
+    def _sync_request():
         try:
-            response = await client.post(
+            req_session = requests.Session()
+            req_session.verify = False
+            response = req_session.post(
                 f"{target_url}/rest/user/login",
-                json={"email": credential.email, "password": credential.password},
-                timeout=10.0
+                json={"email": credential.username, "password": credential.password},
+                timeout=10
             )
             response.raise_for_status()
             
             data = response.json()
-            jwt_token = data.get("authentication", {}).get("token")
+            jwt_token = data["authentication"]["token"]
             
-            # Extract cookies from response
             cookies = {}
-            for cookie in response.cookies.jar:
+            for cookie in req_session.cookies:
                 cookies[cookie.name] = cookie.value
             
             headers = {
@@ -165,11 +92,15 @@ async def _login_via_http(target_url: str, credential: RoleCredential) -> Option
                 jwt_token=jwt_token
             )
             
+            print(f"[AUTH] Login OK for {credential.role}")
             return session
             
         except Exception as e:
             print(f"[AUTH] HTTP login failed for {credential.role}: {e}")
             return None
+
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, _sync_request)
 
 
 def tamper_jwt(token: str, claim_overrides: dict) -> str:

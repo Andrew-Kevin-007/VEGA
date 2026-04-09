@@ -5,7 +5,7 @@ from typing import List, Optional, Dict, Any
 class Endpoint:
     url: str
     method: str
-    params: Dict[str, Any]
+    params: List[str]
     auth_required: bool
     roles_allowed: List[str]
 

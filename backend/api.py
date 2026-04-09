@@ -98,43 +98,37 @@ async def run_scan(req: ScanRequest):
     try:
         from shared.models import AppMap, Endpoint, AttackResult
         from agent.agent_loop import build_agent
+        from core.auth_handler import login_all_roles
+        from core.crawler import crawl
+        from shared.models import RoleCredential as RC
 
         scan_state["phase"] = "crawling"
         scan_state["progress"] = 10
         scan_state["current_action"] = "Crawling target application..."
         scan_state["logs"].append(f"Starting scan on {req.target_url}")
 
-        # Placeholder endpoints until M2 crawler is ready
-        placeholder_endpoints = [
-            {
-                "id": "ep_1",
-                "url": f"{req.target_url}/api/users/1",
-                "method": "GET",
-                "params": {"id": "1"},
-                "auth_required": True,
-                "roles_allowed": [r.role for r in req.roles]
-            }
+        credentials = [RC(username=r.username, password=r.password, role=r.role) for r in req.roles]
+        session_store = await login_all_roles(req.target_url, credentials)
+        app_map = await crawl(req.target_url, session_store)
+        scan_state["endpoints"] = [
+            {"id": f"ep_{i}", "url": e.url, "method": e.method,
+             "params": e.params, "auth_required": e.auth_required,
+             "roles_allowed": e.roles_allowed}
+            for i, e in enumerate(app_map.endpoints)
         ]
-        scan_state["endpoints"] = placeholder_endpoints
-        scan_state["logs"].append(f"Discovered {len(placeholder_endpoints)} endpoints")
+        scan_state["logs"].append(f"Discovered {len(scan_state['endpoints'])} endpoints")
+
+        if not app_map.endpoints:
+            scan_state["phase"] = "done"
+            scan_state["progress"] = 100
+            scan_state["current_action"] = "Scan complete — no endpoints discovered"
+            scan_state["logs"].append("No endpoints found. Try providing role credentials.")
+            scan_state["report"] = "# VEGA Scan Report\n\nNo endpoints discovered. Provide credentials to scan authenticated routes."
+            return
 
         scan_state["phase"] = "hypothesizing"
         scan_state["progress"] = 30
         scan_state["current_action"] = "Generating attack hypotheses..."
-
-        app_map = AppMap(
-            target_url=req.target_url,
-            endpoints=[
-                Endpoint(
-                    url=ep["url"],
-                    method=ep["method"],
-                    params=ep["params"],
-                    auth_required=ep["auth_required"],
-                    roles_allowed=ep["roles_allowed"]
-                ) for ep in placeholder_endpoints
-            ],
-            roles=[r.role for r in req.roles]
-        )
 
         scan_state["phase"] = "attacking"
         scan_state["progress"] = 50
