@@ -1,106 +1,190 @@
 """
 Authentication handler for multi-role login and session management.
-Uses Playwright for browser-based login with Juice Shop.
-Fallback to HTTP POST if Playwright fails.
+REST login via HTTP POST to /rest/user/login endpoint.
+Fallback to Playwright for browser-based login if REST fails.
 """
 
 import asyncio
 import json
 import base64
-from typing import List, Optional
-import requests
+import httpx
+from typing import List, Optional, Dict, Any
 
 from core.session_store import Session, SessionStore
-from shared.models import RoleCredential
 
 
-async def login_all_roles(target_url: str, credentials: List[RoleCredential]) -> SessionStore:
+async def login_all_roles(target_url: str, credentials: List[Dict[str, str]]) -> SessionStore:
     """
-    Login all roles via Playwright and extract session data.
+    Login all roles via REST API with Playwright fallback.
     
     Args:
         target_url: Target application URL (e.g., http://localhost:3000)
-        credentials: List of RoleCredential objects with role, email, password
+        credentials: List of dicts with username, password, role
         
     Returns:
         SessionStore with authenticated sessions for all roles
     """
     session_store = SessionStore()
     
+    print(f"[AUTH] Starting authentication for {len(credentials)} roles...")
+    
     for cred in credentials:
+        print(f"[AUTH] Attempting login for role: {cred.get('role', 'unknown')}")
         session = await _login_role(target_url, cred)
         if session:
             session_store.add(session)
+            print(f"[AUTH] ✓ Successfully added session for {cred.get('role')}")
+        else:
+            print(f"[AUTH] ✗ Failed to add session for {cred.get('role')}")
     
+    print(f"[AUTH] Authentication complete. {len(session_store.sessions) if hasattr(session_store, 'sessions') else 0} sessions stored.\n")
     return session_store
 
 
-async def _login_role(target_url: str, credential: RoleCredential) -> Optional[Session]:
+async def _login_role(target_url: str, credential: Dict[str, str]) -> Optional[Session]:
     """
-    Login a single role via HTTP POST.
+    Login a single role. Tries REST API first, then Playwright fallback.
 
     Args:
         target_url: Target application URL
-        credential: RoleCredential with role, username, password
+        credential: Dict with username, password, role
 
     Returns:
-        Session object with cookies and JWT, or None if login failed
+        Session object or None if login failed
     """
-    return await _login_via_http(target_url, credential)
+    role = credential.get("role", "unknown")
+    username = credential.get("username", "")
+    password = credential.get("password", "")
+    
+    # Step 1: Try REST API login first
+    print(f"[AUTH] Step 1: Trying REST API login for {role}...")
+    session = await _login_via_rest(target_url, username, password, role)
+    if session:
+        print(f"[AUTH] ✓ REST login successful for {role}")
+        return session
+    
+    # Step 2: Fall back to Playwright
+    print(f"[AUTH] Step 2: REST failed, falling back to Playwright for {role}...")
+    session = await _login_via_playwright(target_url, username, password, role)
+    if session:
+        print(f"[AUTH] ✓ Playwright login successful for {role}")
+        return session
+    
+    print(f"[AUTH] ✗ All login methods failed for {role}\n")
+    return None
 
 
-
-async def _login_via_http(target_url: str, credential: RoleCredential) -> Optional[Session]:
+async def _login_via_rest(target_url: str, username: str, password: str, role: str) -> Optional[Session]:
     """
-    Fallback login via HTTP POST to /rest/user/login endpoint.
-    Used if Playwright login fails.
+    Login via REST API POST to /rest/user/login.
     
     Args:
         target_url: Target application URL
-        credential: RoleCredential with role, email, password
+        username: Email or username
+        password: Password
+        role: Role identifier for session storage
         
     Returns:
         Session object or None if login failed
     """
-    def _sync_request():
-        try:
-            req_session = requests.Session()
-            req_session.verify = False
-            response = req_session.post(
-                f"{target_url}/rest/user/login",
-                json={"email": credential.username, "password": credential.password},
-                timeout=10
+    try:
+        login_url = f"{target_url}/rest/user/login"
+        print(f"[AUTH]   → POST {login_url}")
+        
+        payload = {
+            "email": username,
+            "password": password
+        }
+        print(f"[AUTH]   → Payload: email={username}")
+        
+        # Use httpx async client
+        async with httpx.AsyncClient(verify=False, timeout=10.0) as client:
+            response = await client.post(
+                login_url,
+                json=payload
             )
-            response.raise_for_status()
             
+            print(f"[AUTH]   → Response: {response.status_code}")
+            
+            if response.status_code not in [200, 201]:
+                print(f"[AUTH]   → Error: HTTP {response.status_code}")
+                print(f"[AUTH]   → Response body: {response.text[:200]}")
+                return None
+            
+            # Parse JSON response
             data = response.json()
+            print(f"[AUTH]   → Response keys: {list(data.keys())}")
+            
+            # Extract JWT token
+            if "authentication" not in data:
+                print(f"[AUTH]   → Error: 'authentication' key not found in response")
+                return None
+            
+            if "token" not in data["authentication"]:
+                print(f"[AUTH]   → Error: 'token' key not found in authentication")
+                return None
+            
             jwt_token = data["authentication"]["token"]
+            print(f"[AUTH]   → ✓ Token extracted (length: {len(jwt_token)})")
             
+            # Extract cookies if available
             cookies = {}
-            for cookie in req_session.cookies:
-                cookies[cookie.name] = cookie.value
+            for cookie_name, cookie_value in response.cookies.items():
+                cookies[cookie_name] = cookie_value
+            print(f"[AUTH]   → Cookies: {list(cookies.keys())}")
             
+            # Create session
             headers = {
                 "Content-Type": "application/json",
-                "Accept": "application/json"
+                "Accept": "application/json",
+                "Authorization": f"Bearer {jwt_token}"
             }
             
             session = Session(
-                role=credential.role,
+                role=role,
                 cookies=cookies,
                 headers=headers,
                 jwt_token=jwt_token
             )
             
-            print(f"[AUTH] Login OK for {credential.role}")
+            print(f"[AUTH]   → ✓ Session created for {role}")
             return session
-            
-        except Exception as e:
-            print(f"[AUTH] HTTP login failed for {credential.role}: {e}")
-            return None
+    
+    except httpx.ConnectError as e:
+        print(f"[AUTH]   → Connection error: {e}")
+        return None
+    except httpx.TimeoutException as e:
+        print(f"[AUTH]   → Timeout error: {e}")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"[AUTH]   → JSON decode error: {e}")
+        print(f"[AUTH]   → Response was: {response.text[:200] if 'response' in locals() else 'N/A'}")
+        return None
+    except Exception as e:
+        print(f"[AUTH]   → Unexpected error: {type(e).__name__}: {e}")
+        return None
 
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, _sync_request)
+
+async def _login_via_playwright(target_url: str, username: str, password: str, role: str) -> Optional[Session]:
+    """
+    Fallback login via Playwright browser automation.
+    
+    Args:
+        target_url: Target application URL
+        username: Email or username
+        password: Password
+        role: Role identifier
+        
+    Returns:
+        Session object or None if login failed
+    """
+    try:
+        print(f"[AUTH]   → Playwright not yet implemented")
+        print(f"[AUTH]   → Would automate browser login for {role}")
+        return None
+    except Exception as e:
+        print(f"[AUTH]   → Playwright error: {type(e).__name__}: {e}")
+        return None
 
 
 def tamper_jwt(token: str, claim_overrides: dict) -> str:
