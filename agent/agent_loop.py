@@ -73,7 +73,12 @@ def execute_node(state: AgentState) -> AgentState:
 
         # Filter to only target domain endpoints
         target_host = state["target_url"].rstrip("/")
-        SKIP_PATTERNS = ["/assets/", "/media/", "/chunk-", ".js", ".css", ".jpg", ".jpeg", ".png", ".gif", ".ico", ".woff", ".svg"]
+        SKIP_PATTERNS = [
+            "/assets/", "/media/", "/chunk-", ".js", ".css", ".jpg",
+            ".jpeg", ".png", ".gif", ".ico", ".woff", ".svg", ".md",
+            "github", "camo.githubusercontent", "shields.io",
+            "githubusercontent", "redirect?to="
+        ]
         relevant_endpoints = [
             ep for ep in state["app_map"].endpoints
             if (ep.url.startswith("/") or ep.url.startswith(target_host))

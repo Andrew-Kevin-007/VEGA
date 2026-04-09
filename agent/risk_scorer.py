@@ -5,7 +5,7 @@ from agent.prompts import RISK_SCORER_SYSTEM
 
 load_dotenv()
 
-llm = ChatGroq(model="llama3-8b-8192", temperature=0.1)
+llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0.1)
 
 def score_risk(vuln_type: str, evidence: str) -> str:
     prompt = f"""

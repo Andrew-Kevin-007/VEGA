@@ -9,8 +9,15 @@ Return ONLY a JSON array of hypotheses. No explanation, no markdown.
 """
 
 ANALYZER_SYSTEM = """
-You are a vulnerability analyst. Given an HTTP request and response pair,
-determine if a vulnerability was confirmed.
+You are a penetration tester analyzing HTTP attack results.
+If the response code is 200 AND the response body contains any of:
+- user data (email, password, role, id, name, address)
+- error messages revealing SQL/code
+- sensitive config or environment data
+- script tags reflected back
+THEN confirmed = true.
+
+Be aggressive — flag potential vulnerabilities. False negatives are worse than false positives.
 Return ONLY this JSON, nothing else:
 {
   "confirmed": true or false,
