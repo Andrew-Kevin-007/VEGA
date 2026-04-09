@@ -134,6 +134,12 @@ async def run_scan(req: ScanRequest):
             })
         scan_state["logs"].append(f"Crawler insight found {len(insight_vulns)} static vulns.")
 
+        # Subdomain enumeration
+        from agent.subdomain_enum import enumerate_subdomains
+        scan_state["logs"].append("Running subdomain enumeration...")
+        subdomains = enumerate_subdomains(req.target_url)
+        scan_state["logs"].append(f"Found {len(subdomains)} subdomains: {subdomains[:5]}")
+
         if not app_map.endpoints:
             scan_state["phase"] = "done"
             scan_state["progress"] = 100
