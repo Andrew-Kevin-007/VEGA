@@ -5,9 +5,11 @@ from agent.prompts import RISK_SCORER_SYSTEM
 
 load_dotenv()
 
-llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0.1)
+from agent.llm_router import get_llm
+from shared.state import scan_state
 
 def score_risk(vuln_type: str, evidence: str) -> str:
+    llm = get_llm(scan_state["target_url"])
     prompt = f"""
     Vulnerability type: {vuln_type}
     Evidence: {evidence}

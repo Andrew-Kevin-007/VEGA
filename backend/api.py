@@ -17,17 +17,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# --- In-memory scan state ---
-scan_state = {
-    "phase": "idle",
-    "progress": 0,
-    "current_action": "",
-    "endpoints": [],
-    "vulns": [],
-    "graph": {"nodes": [], "edges": []},
-    "logs": [],
-    "report": ""
-}
+from shared.state import scan_state
 
 # --- Request models ---
 class RoleCredential(BaseModel):
@@ -42,6 +32,7 @@ class ScanRequest(BaseModel):
 # --- Routes ---
 @app.post("/scan/start")
 async def start_scan(req: ScanRequest):
+    scan_state["target_url"] = req.target_url
     scan_state["phase"] = "starting"
     scan_state["progress"] = 0
     scan_state["logs"] = []

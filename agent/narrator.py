@@ -4,9 +4,11 @@ from agent.prompts import NARRATOR_SYSTEM
 
 load_dotenv()
 
-llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0.7)
+from agent.llm_router import get_llm
+from shared.state import scan_state
 
 def generate_narrative(vuln_type: str, severity: str, chain: list, evidence: str) -> str:
+    llm = get_llm(scan_state["target_url"])
     prompt = f"""
     Vulnerability: {vuln_type}
     Severity: {severity}

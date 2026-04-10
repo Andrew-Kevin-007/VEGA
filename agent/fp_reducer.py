@@ -5,9 +5,11 @@ from agent.prompts import FP_REDUCER_SYSTEM
 
 load_dotenv()
 
-llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0.1)
+from agent.llm_router import get_llm
+from shared.state import scan_state
 
 def reduce_false_positive(vuln_candidate: dict, evidence: str) -> dict:
+    llm = get_llm(scan_state["target_url"])
     prompt = f"""
     Vulnerability type: {vuln_candidate.get('vuln_type')}
     Confirmed: {vuln_candidate.get('confirmed')}

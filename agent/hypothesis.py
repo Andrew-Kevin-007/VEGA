@@ -5,9 +5,11 @@ from agent.prompts import HYPOTHESIS_SYSTEM
 
 load_dotenv()
 
-llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.3)
+from agent.llm_router import get_llm
+from shared.state import scan_state
 
 def generate_hypotheses(app_map) -> list:
+    llm = get_llm(scan_state["target_url"])
     endpoints_sample = app_map.endpoints[:15]
     prompt = f"""
     App target: {app_map.target_url}

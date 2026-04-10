@@ -4,9 +4,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from agent.llm_router import get_llm
+from shared.state import scan_state
+
 def analyze_crawl_data(endpoints: list, target_url: str) -> list[dict]:
     try:
-        llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0.2)
+        llm = get_llm(scan_state["target_url"])
         
         # Pass only first 20 endpoints to stay within token limit
         sample_endpoints = endpoints[:20]

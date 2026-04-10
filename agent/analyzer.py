@@ -6,9 +6,11 @@ from shared.models import AttackResult
 
 load_dotenv()
 
-llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0.1)
+from agent.llm_router import get_llm
+from shared.state import scan_state
 
 def analyze_result(attack_result: AttackResult) -> dict:
+    llm = get_llm(scan_state["target_url"])
     prompt = f"""
     Endpoint: {attack_result.endpoint.url} [{attack_result.endpoint.method}]
     Payload sent: {attack_result.payload}
