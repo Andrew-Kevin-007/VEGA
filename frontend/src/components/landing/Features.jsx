@@ -1,37 +1,40 @@
-import { Shield, Search, Cpu, FileText, GitBranch } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { useReveal } from '../../hooks/useReveal';
 import './Features.css';
 
-const items = [
+/* Anthropic-style: no icon boxes, no cards. Just editorial rows with a large
+   serif statement on the left and a description on the right. */
+
+const FEATURES = [
   {
-    icon: Search,
-    label: 'Discovery',
-    title: 'Intelligent crawling',
-    desc: 'Playwright-driven crawler discovers endpoints, forms, and API routes with authenticated session support across multiple roles.',
+    num: '01',
+    headline: 'Crawls like a real browser, thinks like a real attacker.',
+    detail: 'Playwright-powered crawler navigates every page, intercepts API calls, and builds a complete application map — authenticated across multiple roles simultaneously.',
+    stat: '50+ pages/scan',
   },
   {
-    icon: Cpu,
-    label: 'Analysis',
-    title: 'Multi-agent reasoning',
-    desc: 'Five specialized LLM agents — hypothesis, analysis, false-positive reduction, risk scoring, and narration — work in concert.',
+    num: '02',
+    headline: 'Five AI agents eliminate false positives before you ever see results.',
+    detail: 'Hypothesis → Attack → Analyze → Score → Narrate. The LangGraph pipeline validates every finding through a false-positive reducer and risk scorer before surfacing it.',
+    stat: '<2% FP rate',
   },
   {
-    icon: Shield,
-    label: 'Detection',
-    title: 'Deep vulnerability coverage',
-    desc: 'SQLi, XSS, CSRF, IDOR, JWT tampering, RBAC bypass, GraphQL introspection — with contextual payload generation.',
+    num: '03',
+    headline: 'Twelve vulnerability classes tested in parallel on every endpoint.',
+    detail: 'SQLi, XSS (DOM + reflected), CSRF, IDOR, JWT tampering, RBAC bypass, GraphQL introspection, business logic flaws — each endpoint gets the full battery.',
+    stat: '12 vuln classes',
   },
   {
-    icon: GitBranch,
-    label: 'Chains',
-    title: 'Multi-step attack chains',
-    desc: 'Builds sequential exploitation chains where each step injects context from the previous, simulating real-world attacker behavior.',
+    num: '04',
+    headline: 'Multi-step attack chains mirror real-world exploitation paths.',
+    detail: 'Chain builder constructs sequential exploits where step 2 uses the output of step 1 — simulating lateral movement and privilege escalation, not just isolated payload injection.',
+    stat: 'N-step chains',
   },
   {
-    icon: FileText,
-    label: 'Reporting',
-    title: 'Narrative intelligence',
-    desc: 'Every finding comes with a plain-English attacker narrative — step-by-step how a real attacker would exploit the vulnerability.',
+    num: '05',
+    headline: 'Every finding comes with an attacker narrative written in plain English.',
+    detail: 'The narration agent produces a step-by-step exploitation walk-through, business impact assessment, and remediation recommendation — ready to drop into a security report.',
+    stat: 'Auto-narrative',
   },
 ];
 
@@ -39,27 +42,33 @@ export default function Features() {
   const ref = useReveal();
 
   return (
-    <section className="features" ref={ref}>
-      <div className="features__inner container reveal">
-        <div className="features__header">
-          <p className="features__label">Capabilities</p>
-          <h2 className="features__title">
-            Security intelligence that goes beyond scanning.
-          </h2>
+    <section className="feat" ref={ref}>
+      <div className="feat__inner container reveal">
+
+        <div className="feat__header">
+          <p className="feat__label">How VEGA works</p>
+          <h2 className="feat__title">Built for teams that need results, not noise.</h2>
+          <p className="feat__subtitle">
+            Traditional scanners fire thousands of payloads and dump every response.
+            VEGA reasons about targets, validates findings, and explains each one.
+          </p>
         </div>
 
-        <div className="features__grid stagger">
-          {items.map((item, i) => (
-            <div key={i} className="features__item reveal">
-              <div className="features__icon-wrap">
-                <item.icon size={20} strokeWidth={1.5} />
+        <div className="feat__rows stagger">
+          {FEATURES.map((f, i) => (
+            <div key={i} className="feat__row reveal">
+              <div className="feat__row-left">
+                <span className="feat__row-num">{f.num}</span>
+                <h3 className="feat__row-headline">{f.headline}</h3>
               </div>
-              <p className="features__item-label">{item.label}</p>
-              <h3 className="features__item-title">{item.title}</h3>
-              <p className="features__item-desc">{item.desc}</p>
+              <div className="feat__row-right">
+                <p className="feat__row-detail">{f.detail}</p>
+                <span className="feat__row-stat">{f.stat}</span>
+              </div>
             </div>
           ))}
         </div>
+
       </div>
     </section>
   );
