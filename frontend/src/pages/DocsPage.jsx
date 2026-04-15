@@ -150,6 +150,13 @@ cd frontend && npm install`}</code>
         <h1>Ethical Boundaries</h1>
         <p>VEGA is built with strict safety guidelines to ensure responsible security research.</p>
 
+        <div className="docs-callout docs-callout--info">
+          <Shield size={18} />
+          <div>
+            <strong>Local Audits:</strong> We have whitelisted <code>localhost</code> and <code>127.0.0.1</code> to allow auditing of local development environments like Juice Shop. All other private network ranges remain blocked.
+          </div>
+        </div>
+
         <div className="docs-callout docs-callout--warning">
           <AlertOctagon size={18} />
           <div>
@@ -161,17 +168,44 @@ cd frontend && npm install`}</code>
         <h2>Compliance Controls</h2>
         <p>
           VEGA respects <code>robots.txt</code> and allows for explicit endpoint 
-          blacklisting via the configuration panel. It is designed to be run against 
-          Non-Production (Staging/UAT) environments to mitigate any risk of 
-          unintended data mutation in live systems.
+          blacklisting via the configuration panel.
+        </p>
+      </div>
+    )
+  },
+  {
+    id: 'hardening',
+    title: 'Hardening & Deep Discovery',
+    icon: Shield,
+    content: (
+      <div className="docs-content">
+        <h1>Advanced Protection Layer</h1>
+        <p>VEGA executes in a hardened environment meant for auditing public-facing assets.</p>
+
+        <h3>1. SSRF Fingerprinting</h3>
+        <p>
+          Our protection layer performs real-time DNS pinning and IP-range validation. 
+          If a target hostname resolves to a restricted internal network (e.g., 10.x.x.x, 192.168.x.x), 
+          the scan is immediately halted with a <code>Security Block</code> alert.
         </p>
 
-        <h2>Legal Notice</h2>
+        <h3>2. Deep Discovery Engine</h3>
         <p>
-          Users must possess explicit authorization to scan any target URL. VEGA is 
-          not intended for unauthorized testing and includes internal logging for 
-          auditability within enterprise deployments.
+          Traditional crawlers only see HTML buttons. VEGA's engine uses:
         </p>
+        <ul>
+          <li><strong>Network Interception:</strong> Captures Fetch/XHR requests made by JS bundles.</li>
+          <li><strong>Static Mining:</strong> Scans scripts for relative API paths (e.g., <code>/api/v1/user</code>).</li>
+          <li><strong>Memory Profiling:</strong> Hooks into the browser heap to find dormant URLs.</li>
+        </ul>
+
+        <div className="docs-callout docs-callout--info">
+          <Cpu size={18} />
+          <div>
+            <strong>Playwright Sandbox:</strong> Every scan runs in an isolated, 
+            ephemeral browser context with unique fingerprints to bypass simple anti-bot measures.
+          </div>
+        </div>
       </div>
     )
   },

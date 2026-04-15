@@ -156,15 +156,35 @@ async def run_scan(req: ScanRequest, active_vulns: list):
         scan_state["logs"].append(f"Active vulnerability classes: {vuln_label}")
 
         credentials = [RC(username=r.username, password=r.password, role=r.role) for r in req.roles]
+        scan_state["logs"].append(f"Crawler session initialized. Discovery mode: ACTIVE")
         session_store = await login_all_roles(req.target_url, credentials)
         app_map = await crawl(req.target_url, session_store)
+        
+        scan_state["logs"].append(f"Playwright navigation complete. Extracting metadata...")
         scan_state["endpoints"] = [
             {"id": f"ep_{i}", "url": e.url, "method": e.method,
              "params": e.params, "auth_required": e.auth_required,
              "roles_allowed": e.roles_allowed}
             for i, e in enumerate(app_map.endpoints)
         ]
-        scan_state["logs"].append(f"Discovered {len(scan_state['endpoints'])} endpoints")
+        
+        # Build DAG: Add Root and Discovered Endpoints
+        # The frontend expects {id, label, type: 'root'|'endpoint'|'vuln'}
+        nodes = [{"id": "root", "label": req.target_url, "type": "root"}]
+        edges = []
+        for i, ep in enumerate(scan_state["endpoints"]):
+            node_id = ep["id"] # Use the stable ID 'ep_N'
+            nodes.append({
+                "id": node_id, 
+                "label": f"{ep['method']} {ep['url']}", 
+                "type": "endpoint", 
+                "data": {"url": ep["url"]} 
+            })
+            edges.append({"source": "root", "target": node_id, "label": "discovered"})
+            
+        scan_state["graph"] = {"nodes": nodes, "edges": edges}
+        scan_state["logs"].append(f"Successfully mapped {len(scan_state['endpoints'])} endpoints to Attack Graph.")
+        scan_state["logs"].append("Transitioning to Agentic Hypothesis phase...")
 
         if not app_map.endpoints:
             scan_state["phase"] = "done"
@@ -213,46 +233,47 @@ async def run_attack_batch():
             roles=full_app_map.roles
         )
         
+        # --- Agentic Phase 1: Real AI Hypotheses ---
         scan_state["phase"] = "hypothesizing"
         scan_state["progress"] = 30
-        scan_state["current_action"] = f"Generating attack hypotheses (Batch {idx+1}-{idx+len(batch_endpoints)})..."
-        scan_state["logs"].append(f"Scanning batch {idx+1} to {idx+len(batch_endpoints)}...")
-
+        scan_state["current_action"] = "Generating targeted attack hypotheses with AI Swarm..."
+        agent = build_agent()
+        
+        hypotheses = generate_hypotheses(batch_app_map)
+        scan_state["logs"].append(f"AI generated {len(hypotheses)} specific attack vectors for this batch.")
+        
+        # --- Agentic Phase 2: Real Execution ---
         scan_state["phase"] = "attacking"
         scan_state["progress"] = 50
-        scan_state["current_action"] = f"Executing attacks on {len(batch_endpoints)} endpoints..."
+        scan_state["current_action"] = f"Executing {len(hypotheses)} AI-driven attack chains..."
         
         from core.request_engine import execute_attack
         from core.session_store import SessionStore
         
-        # Build sessions for this execution
-        session_store = SessionStore()
-        # In a real impl, we would persist sessions from run_scan, but for now we re-use credentials
-        # (This is a simplified re-auth for the batch)
-        
         attack_results = []
-        for ep_data in batch_endpoints:
-            # Reconstruct Endpoint object from dict if needed, but batch_endpoints are already objects here
-            # Since they come from app_map.endpoints
+        for h in hypotheses:
+            target_ep = next((e for e in batch_endpoints if e.url == h.get("endpoint")), batch_endpoints[0])
             
-            # For each active vuln type, we might want to run multiple payloads.
-            # Here we simplify: trigger a targeted attack for each endpoint.
+            scan_state["logs"].append(f"AI Reason: {h.get('rationale', 'Testing logic flaw')}")
+            scan_state["logs"].append(f"Attacking: {target_ep.method} {target_ep.url} with payload reasoning...")
+            
             res = await execute_attack(
-                endpoint=ep_data,
-                payload={"test": "vega_payload"}, # The actual payload generation should come from hypotheses
-                session_store=SessionStore(), # Assuming unauth for placeholder, 
+                endpoint=target_ep,
+                payload=h.get("payload", {"test": "vega_probe"}), 
+                session_store=SessionStore(), 
                 target_url=full_app_map.target_url
             )
             attack_results.append(res)
+            await asyncio.sleep(0.1)
 
+        # --- Agentic Phase 3: AI Analysis ---
         scan_state["phase"] = "analyzing"
         scan_state["progress"] = 70
-        scan_state["current_action"] = "Analyzing results with AI swarm..."
-
-        agent = build_agent()
+        scan_state["current_action"] = "Confirming vulnerabilities and score risk..."
+        
         final_state = agent.invoke({
             "app_map": batch_app_map,
-            "hypotheses": [], # Hypothesis agent will generate these inside the loop if we restructure
+            "hypotheses": hypotheses,
             "attack_results": attack_results,
             "confirmed_vulns": scan_state["vulns"], 
             "logs": [],
@@ -265,21 +286,27 @@ async def run_attack_batch():
         scan_state["vulns"] = final_state["confirmed_vulns"]
         scan_state["scanned_index"] += len(batch_endpoints)
 
-        # Re-build graph from cumulative vulns
-        nodes, edges = [], []
+        # Re-build graph from cumulative vulns + endpoints (CUMULATIVE)
+        current_nodes = scan_state["graph"]["nodes"]
+        current_edges = scan_state["graph"]["edges"]
+        
         for vuln in scan_state["vulns"]:
-            n_id = vuln["id"]
-            nodes.append({"id": n_id, "label": vuln["type"], "type": "vuln"})
-            ep_id = f"ep_{n_id}"
-            try:
-                ep_url = vuln["chain"][0]["endpoint"].url
-            except Exception:
-                ep_url = getattr(vuln["chain"][0].endpoint, "url", "Unknown Endpoint")
+            v_id = vuln["id"]
+            if not any(n["id"] == v_id for n in current_nodes):
+                current_nodes.append({"id": v_id, "label": vuln["type"], "type": "vuln"})
                 
-            nodes.append({"id": ep_id, "label": ep_url, "type": "endpoint"})
-            edges.append({"source": ep_id, "target": n_id, "label": "exploited via"})
-
-        scan_state["graph"] = {"nodes": nodes, "edges": edges}
+                try:
+                    ep_url = vuln["chain"][0]["endpoint"].url
+                except Exception:
+                    ep_url = vuln["chain"][0].get("endpoint", {}).get("url", "Unknown")
+                
+                match_ep = next((n for n in current_nodes if n.get("data", {}).get("url") == ep_url), None)
+                if match_ep:
+                    current_edges.append({"source": match_ep["id"], "target": v_id, "label": "exploited"})
+                else:
+                    current_edges.append({"source": "root", "target": v_id, "label": "exploited"})
+ 
+        scan_state["graph"] = {"nodes": current_nodes, "edges": current_edges}
 
         # Re-build markdown report cumulatively
         report = f"# VEGA Scan Report\n\nTarget: {full_app_map.target_url}\n\n"

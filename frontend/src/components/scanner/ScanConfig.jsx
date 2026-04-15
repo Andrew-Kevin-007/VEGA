@@ -51,8 +51,7 @@ export default function ScanConfig({ onScanStarted }) {
     try { new URL(targetUrl); } catch { setError('Please enter a valid URL.'); return; }
     
     const validRoles = roles.filter(r => r.username && r.password);
-    if (validRoles.length === 0) { setError('Add at least one credential.'); return; }
-
+    
     if (isExternalUrl(targetUrl)) {
       setShowRiskModal(true);
     } else {

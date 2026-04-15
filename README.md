@@ -1,26 +1,67 @@
 <div align="center">
-  <img src="https://img.shields.io/badge/VEGA-Security_Platform-000000?style=for-the-badge&logo=shield" alt="VEGA" />
-  <h1>The Autonomous AI Security Engineer</h1>
-  <p><b>Machine-speed penetration testing. Zero false positives. Enterprise scale.</b></p>
+  <img src="https://img.shields.io/badge/VEGA-000000?style=for-the-badge&logo=vega&logoColor=white" alt="VEGA Logo" />
+  <h1>VEGA: The Autonomous AI Security Engineer</h1>
+  <p><b>Machine-speed penetration testing. Zero false positives. Industry-standard hardening.</b></p>
   
-  [![Status](https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge)](#)
-  [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=FastAPI&logoColor=white)](#)
-  [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](#)
-  [![LangGraph](https://img.shields.io/badge/Powered_by-LangGraph-FF4F00?style=for-the-badge)](#)
+  [![Status](https://img.shields.io/badge/Status-Beta_V1.5-blue?style=for-the-badge)](#)
+  [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](#)
+  [![Engine](https://img.shields.io/badge/Engine-LangGraph_AI-8A2BE2?style=for-the-badge)](#)
 </div>
 
 ---
 
-## 🚀 The Missing Link in AppSec
-Modern CI/CD pipelines deploy code multiple times a day, yet traditional penetration testing takes weeks to schedule and costs tens of thousands of dollars. Automated legacy scanners rely strictly on outdated regex signatures, generating massive walls of "False Positives" that security engineers drown in.
+## 🚀 The Autonomous AppSec Revolution
+Traditional DAST tools are noisy, slow, and fail to understand modern business logic. **VEGA** changes the game by deploying a decentralized swarm of AI agents that don't just "fuzz"—they **reason**.
 
-**VEGA fundamentally rewrites this paradigm.** 
-
-By leveraging the bleeding-edge reasoning capabilities of Large Language Models within a cyclical LangGraph agentic loop, VEGA doesn't just "scan" for bugs. It **thinks**. It autonomously crawls complex Single Page Applications, understands business logic, generates stateful attack hypotheses, executes them, and mathematically validates the exploit—all with **zero human intervention**.
+VEGA autonomously maps your infrastructure, identifies logic-based attack surfaces, and constructs multi-stage exploit chains. By the time you finish your first coffee, VEGA has already identified, validated, and narrated a high-fidelity security report.
 
 ---
 
-## 🧠 System Architecture: The Agentic Engine
+## 🛠️ Performance & Hardening
+VEGA is now hardened for **Enterprise Grade** auditing of live external targets.
+
+- **🛡️ Industry-Standard SSRF Protection**: Advanced DNS-pinning and loopback-aware validation layers ensure the scanner never interacts with your internal infrastructure unless explicitly authorized.
+- **🔍 Deep Discovery Engine**: Captures "invisible" API endpoints by intercepting XHR/Fetch traffic at the network level and mining JavaScript bundles with regex-based static analysis.
+- **⚡ Supercharged Inference**: Powered by **Llama-3.3-70B** on Groq, processing complex attack hypotheses in sub-second latency.
+- **📊 Real-Time Attack Graph**: Watch the AI work. A dynamic, interactive DAG visualizes the exact path from discovery to confirmed exploitation.
+
+---
+
+## 🧠 The Agentic Engine (How it Works)
+
+1. **Discovery (The AppMap)**: A headless Playwright instance navigates your SPA, intercepting every API call to build a comprehensive "AppMap" of your surface area.
+2. **Hypothesis Agent**: The strategist. Analyzes the AppMap context to generate stateful attack vectors (IDOR, SQLi, XSS, Logic Flaws).
+3. **Execution & Analysis**: The engine fires targeted payloads. A baseline-diffing algorithm confirms exploitation by detecting minute anomalies in server behavior.
+4. **False Positive Reduction**: Every finding is peer-reviewed by a dedicated AI validator to ensure a 100% signal-to-noise ratio.
+5. **Narrative Generation**: Raw evidence is converted into executive-grade markdown, ready for the C-suite and the dev team alike.
+
+---
+
+## 💻 Rapid Setup
+
+1. **Prerequisites**: [Python 11+](https://python.org), [Node.js](https://nodejs.org).
+2. **Key**: Obtain a `GROQ_API_KEY` for the agentic brains.
+3. **Deploy**:
+   ```bash
+   # Clone and initialize
+   git clone https://github.com/vega-security/vega.git
+   cd vega
+   
+   # Windows
+   ./start.bat
+   
+   # Linux/macOS
+   chmod +x start.sh && ./start.sh
+   ```
+
+The dashboard initializes at `http://localhost:5173`. Simply point it at your target URL and launch.
+
+---
+
+## ⚖️ Ethical Use & Safety
+VEGA is intended for authorized security research and professional penetration testing ONLY. The platform includes strict egress filters to respect `robots.txt` and prevent unintended data mutation on production systems.
+
+***Built for the modern web. Driven by AI. Secured by VEGA.***
 
 VEGA’s intelligence is driven by a decentralized swarm of **Five Specialized AI Agents**, executing inside a high-throughput Directed Acyclic Graph (DAG) powered by a robust Python/FastAPI backend and a React (Vite) real-time frontend.
 

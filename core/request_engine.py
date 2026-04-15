@@ -35,8 +35,8 @@ async def execute_attack(
         AttackResult with response status, headers, body, and diff
     """
     try:
-        # Build full URL
-        full_url = urljoin(target_url, endpoint.path)
+        # Build full URL using endpoint.url (not .path)
+        full_url = urljoin(target_url, endpoint.url)
         
         # Prepare headers
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
@@ -133,15 +133,12 @@ async def execute_attack(
             if baseline:
                 diff = _diff_responses(baseline, response_body)
             
-            # Create and return AttackResult
+            # Create and return AttackResult with correct shared model fields
             result = AttackResult(
-                endpoint_path=endpoint.path,
-                method=endpoint.method,
-                status_code=status_code,
-                response_headers=response_headers,
+                endpoint=endpoint,
+                payload=payload,
+                response_code=status_code,
                 response_body=response_body,
-                payload_sent=payload,
-                role_used=role,
                 diff_from_baseline=diff
             )
             
@@ -154,13 +151,10 @@ async def execute_attack(
             error_msg = error_msg[:2000] + "...[truncated]"
         
         result = AttackResult(
-            endpoint_path=endpoint.path,
-            method=endpoint.method,
-            status_code=0,
-            response_headers={},
+            endpoint=endpoint,
+            payload=payload,
+            response_code=0,
             response_body=f"ERROR: {error_msg}",
-            payload_sent=payload,
-            role_used=role,
             diff_from_baseline=None
         )
         

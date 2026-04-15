@@ -47,7 +47,9 @@ def is_safe_url(url: str, allow_internal: bool = False) -> Tuple[bool, Optional[
         if not hostname:
             return False, "Invalid hostname."
 
-        # 1. Check for literal IP addresses in hostname
+        # Whitelist localhost for development/lab use
+        if hostname == 'localhost' or hostname == '127.0.0.1':
+            return True, None
         try:
             ip = ipaddress.ip_address(hostname)
             if any(ip in range for range in PRIVATE_IP_RANGES):

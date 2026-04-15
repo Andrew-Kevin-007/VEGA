@@ -26,14 +26,20 @@ async def crawl(target_url: str, session_store: SessionStore) -> AppMap:
         AppMap with all discovered endpoints
     """
     # Get first available role for authentication
+    # Optional authentication handling
+    headers = {}
+    cookies = {}
+    
     roles = session_store.all_roles()
-    if not roles:
-        print("[CRAWLER] No authenticated sessions available")
-        return AppMap(target_url=target_url, endpoints=[], roles=[])
-
-    first_role = roles[0]
-    headers = session_store.get_headers(first_role)
-    cookies = session_store.get_cookies(first_role)
+    if roles:
+        first_role = roles[0]
+        try:
+            headers = session_store.get_headers(first_role)
+            cookies = session_store.get_cookies(first_role)
+        except Exception as e:
+            print(f"[CRAWLER] Session retrieval failed: {e}")
+    else:
+        print("[CRAWLER] Proceeding with unauthenticated session context")
 
     # Run sync crawler in executor to avoid asyncio issues on Windows
     loop = asyncio.get_event_loop()
@@ -101,31 +107,47 @@ def _crawl_sync(target_url: str, headers: dict, cookies: dict) -> Set[tuple]:
                 for k, v in cookies.items()
             ])
 
-        # Setup request interception
+        # Setup request interception for Deep Discovery
         def handle_request(request):
             try:
-                print(f"[CRAWLER] Request: {request.method} {request.url[:80]}")
-                path = urlparse(request.url).path
-                method = request.method
+                # Intercept XHR, Fetch, and other API calls
+                resource_type = request.resource_type
+                if resource_type in ["fetch", "xhr", "other"] or request.method != "GET":
+                    print(f"[CRAWLER] Deep Intercept: {request.method} {request.url[:80]}")
+                    
+                    parsed_url = urlparse(request.url)
+                    path = parsed_url.path
+                    method = request.method
 
-                # Try to extract request body for POST/PUT/PATCH
-                request_data = {}
-                try:
-                    if request.method in ["POST", "PUT", "PATCH"]:
-                        post_data = request.post_data
-                        if post_data:
-                            request_data = json.loads(post_data)
-                except Exception as e:
-                    print(f"[CRAWLER] Error: {e}")
+                    # Extract parameter names from query string OR body
+                    params = set()
+                    
+                    # 1. Query Params
+                    if parsed_url.query:
+                        from urllib.parse import parse_qs
+                        for key in parse_qs(parsed_url.query).keys():
+                            params.add(key)
+                    
+                    # 2. Body Params (for JSON)
+                    try:
+                        if request.method in ["POST", "PUT", "PATCH"]:
+                            post_data = request.post_data
+                            if post_data:
+                                try:
+                                    data = json.loads(post_data)
+                                    if isinstance(data, dict):
+                                        params.update(data.keys())
+                                except json.JSONDecodeError:
+                                    # Fallback for form-encoded?
+                                    pass
+                    except Exception:
+                        pass
 
-                # Extract parameter names from request
-                params = list(request_data.keys()) if request_data else []
-
-                # Add to endpoints
-                endpoint_key = (method, path, tuple(sorted(params)))
-                endpoints.add(endpoint_key)
+                    # Add to endpoints AppMap
+                    endpoint_key = (method, path, tuple(sorted(list(params))))
+                    endpoints.add(endpoint_key)
             except Exception as e:
-                print(f"[CRAWLER] Error: {e}")
+                print(f"[CRAWLER] Intercept Error: {e}")
 
         page.on("request", handle_request)
 
@@ -142,8 +164,14 @@ def _crawl_sync(target_url: str, headers: dict, cookies: dict) -> Set[tuple]:
             visited_urls.add(url)
 
             try:
-                # Navigate to page
-                page.goto(url, wait_until="networkidle", timeout=10000)
+                # Navigate to page - use domcontentloaded for faster discovery on slow sites
+                try:
+                    page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                    # Settle period for JS execution and XHRs to fire
+                    page.wait_for_timeout(3000)
+                except Exception as e:
+                    print(f"[CRAWLER] Navigation Warning for {url}: {e}")
+                
                 print(f"[CRAWLER] Visited: {url}, endpoints so far: {len(endpoints)}")
 
                 # Extract forms
@@ -189,9 +217,22 @@ def _crawl_sync(target_url: str, headers: dict, cookies: dict) -> Set[tuple]:
                         document.querySelectorAll('a[href]').forEach(a => {
                             links.push(a.href);
                         });
+                        // Discovery: look for script-based navigation as well
                         return links;
                     }
                 """)
+                
+                # Discovery: Extract potential endpoints from page content via Regex
+                # This finds relative paths like /api/v1/user
+                try:
+                    import re
+                    content = page.content()
+                    api_patterns = re.findall(r'[\'"](/api/[^\'"]+)[\'"]', content)
+                    for api_path in api_patterns:
+                        clean_path = api_path.split('?')[0]
+                        endpoints.add(("GET", clean_path, ()))
+                except Exception:
+                    pass
 
                 # Add discovered links to queue
                 for link in links:
