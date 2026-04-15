@@ -11,6 +11,11 @@ export const vegaApi = {
     }
   },
 
+  continueScan: async () => {
+    const res = await fetch(`${BASE}/scan/continue`, { method: 'POST' });
+    return res.json();
+  },
+
   startScan: async (targetUrl, roles, vulnTypes = null) => {
     const res = await fetch(`${BASE}/scan/start`, {
       method: 'POST',

@@ -203,9 +203,4 @@ def _crawl_sync(target_url: str, headers: dict, cookies: dict) -> Set[tuple]:
         browser.close()
         print(f"[CRAWLER] Done. Discovered: {len(endpoints)}")
 
-    # Restrict max endpoints to 30 to limit LLM token usage during hypothesis & attack
-    if len(endpoints) > 30:
-        endpoints = set(list(endpoints)[:30])
-        print(f"[CRAWLER] Truncated endpoints to 30 to prevent excessive token usage.")
-
     return endpoints

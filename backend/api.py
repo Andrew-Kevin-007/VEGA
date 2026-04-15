@@ -34,6 +34,8 @@ scan_state = {
     "graph": {"nodes": [], "edges": []},
     "logs": [],
     "report": "",
+    "scanned_index": 0,
+    "app_map": None,
     "vuln_types": []   # active vuln classes for this scan
 }
 
@@ -63,17 +65,20 @@ async def start_scan(req: ScanRequest):
     scan_state["vulns"] = []
     scan_state["endpoints"] = []
     scan_state["graph"] = {"nodes": [], "edges": []}
+    scan_state["scanned_index"] = 0
+    scan_state["app_map"] = None
     scan_state["vuln_types"] = active_vulns
 
     asyncio.create_task(run_scan(req, active_vulns))
     return {"scan_id": str(uuid.uuid4()), "vuln_types": active_vulns}
 
 @app.get("/scan/status")
-def get_status():
     return {
         "phase": scan_state["phase"],
         "progress": scan_state["progress"],
-        "current_action": scan_state["current_action"]
+        "current_action": scan_state["current_action"],
+        "scanned_index": scan_state.get("scanned_index", 0),
+        "total_endpoints": len(scan_state.get("endpoints", []))
     }
 
 @app.get("/scan/endpoints")
@@ -108,6 +113,15 @@ async def stream_logs():
             yield f"data: {logs[sent]}\n\n"
             sent += 1
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+@app.post("/scan/continue")
+async def continue_scan():
+    if scan_state["phase"] == "done" and scan_state.get("app_map"):
+        # Queue the next batch
+        scan_state["phase"] = "starting"
+        asyncio.create_task(run_attack_batch())
+        return {"status": "continuing"}
+    return {"status": "error", "message": "Cannot continue scan"}
 
 # --- Background scan runner ---
 async def run_scan(req: ScanRequest, active_vulns: list):
@@ -144,16 +158,53 @@ async def run_scan(req: ScanRequest, active_vulns: list):
             scan_state["report"] = "# VEGA Scan Report\n\nNo endpoints discovered. Provide credentials to scan authenticated routes."
             return
 
+        scan_state["app_map"] = app_map
+        scan_state["scanned_index"] = 0
+        
+        # Trigger the first batch attack
+        await run_attack_batch()
+
+    except Exception:
+        import traceback
+        scan_state["phase"] = "error"
+        scan_state["logs"].append(f"Error detail: {traceback.format_exc()}")
+
+async def run_attack_batch():
+    try:
+        from shared.models import AppMap, AttackResult
+        from agent.agent_loop import build_agent
+        
+        full_app_map = scan_state.get("app_map")
+        idx = scan_state.get("scanned_index", 0)
+        
+        if not full_app_map:
+            return
+            
+        # Extract next up to 50 endpoints
+        batch_endpoints = full_app_map.endpoints[idx : idx + 50]
+        if not batch_endpoints:
+            scan_state["phase"] = "done"
+            scan_state["progress"] = 100
+            scan_state["current_action"] = "All available endpoints have been scanned."
+            return
+            
+        batch_app_map = AppMap(
+            target_url=full_app_map.target_url,
+            endpoints=batch_endpoints,
+            roles=full_app_map.roles
+        )
+        
         scan_state["phase"] = "hypothesizing"
         scan_state["progress"] = 30
-        scan_state["current_action"] = "Generating attack hypotheses..."
+        scan_state["current_action"] = f"Generating attack hypotheses (Batch {idx+1}-{idx+len(batch_endpoints)})..."
+        scan_state["logs"].append(f"Scanning batch {idx+1} to {idx+len(batch_endpoints)}...")
 
         scan_state["phase"] = "attacking"
         scan_state["progress"] = 50
         scan_state["current_action"] = "Running attack chain..."
 
         dummy_result = AttackResult(
-            endpoint=app_map.endpoints[0],
+            endpoint=batch_endpoints[0] if batch_endpoints else None,
             payload={"id": "2"},
             response_code=200,
             response_body='{"id":2,"email":"victim@juice-sh.op","role":"customer"}',
@@ -166,22 +217,23 @@ async def run_scan(req: ScanRequest, active_vulns: list):
 
         agent = build_agent()
         final_state = agent.invoke({
-            "app_map": app_map,
+            "app_map": batch_app_map,
             "hypotheses": [],
-            "attack_results": [dummy_result],
-            "confirmed_vulns": [],
+            "attack_results": [dummy_result] if dummy_result.endpoint else [],
+            "confirmed_vulns": scan_state["vulns"], # carry over previous findings
             "logs": [],
-            "vuln_types": active_vulns   # agent receives selected classes
+            "vuln_types": scan_state["vuln_types"]
         })
 
         for log in final_state["logs"]:
             scan_state["logs"].append(log)
 
         scan_state["vulns"] = final_state["confirmed_vulns"]
+        scan_state["scanned_index"] += len(batch_endpoints)
 
-        # Build graph from vulns
+        # Re-build graph from cumulative vulns
         nodes, edges = [], []
-        for vuln in final_state["confirmed_vulns"]:
+        for vuln in scan_state["vulns"]:
             n_id = vuln["id"]
             nodes.append({"id": n_id, "label": vuln["type"], "type": "vuln"})
             ep_id = f"ep_{n_id}"
@@ -195,9 +247,9 @@ async def run_scan(req: ScanRequest, active_vulns: list):
 
         scan_state["graph"] = {"nodes": nodes, "edges": edges}
 
-        # Build markdown report
-        report = f"# VEGA Scan Report\n\nTarget: {req.target_url}\n\n"
-        for vuln in final_state["confirmed_vulns"]:
+        # Re-build markdown report cumulatively
+        report = f"# VEGA Scan Report\n\nTarget: {full_app_map.target_url}\n\n"
+        for vuln in scan_state["vulns"]:
             report += f"## {vuln['type']} [{vuln['severity']}]\n\n"
             report += f"**Evidence:** {vuln['evidence']}\n\n"
             report += f"**Narrative:**\n{vuln['narrative']}\n\n---\n\n"
@@ -206,7 +258,7 @@ async def run_scan(req: ScanRequest, active_vulns: list):
         scan_state["phase"] = "done"
         scan_state["progress"] = 100
         scan_state["current_action"] = "Scan complete"
-        scan_state["logs"].append("Scan complete.")
+        scan_state["logs"].append("Batch scan complete.")
 
     except Exception:
         import traceback

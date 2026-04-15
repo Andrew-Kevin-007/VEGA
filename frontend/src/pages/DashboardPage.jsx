@@ -4,6 +4,7 @@ import { ArrowRight, AlertTriangle, CheckCircle, Activity } from 'lucide-react';
 import { useScanStatus } from '../hooks/useScanStatus';
 import { useLogStream }  from '../hooks/useLogStream';
 import { useScanData }   from '../hooks/useScanData';
+import { vegaApi }       from '../api/vegaApi';
 import DashboardLayout   from '../components/layout/DashboardLayout';
 import StatsOverview     from '../components/dashboard/StatsOverview';
 import EndpointTable     from '../components/dashboard/EndpointTable';
@@ -93,9 +94,20 @@ function OverviewTab({ status, endpoints, vulns, logs }) {
             </p>
           </div>
           {isDone && (
-            <Link to="/dashboard/report" className="dash-overview-report-btn">
-              Download Report <ArrowRight size={14} />
-            </Link>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              {status.scanned_index < status.total_endpoints && (
+                <button 
+                  className="dash-overview-report-btn" 
+                  onClick={() => vegaApi.continueScan()}
+                  style={{ background: 'var(--accent)', color: '#000', border: 'none' }}
+                >
+                  Attack Next Batch ({status.total_endpoints - status.scanned_index} remaining) <ArrowRight size={14} />
+                </button>
+              )}
+              <Link to="/report" className="dash-overview-report-btn">
+                Download Report <ArrowRight size={14} />
+              </Link>
+            </div>
           )}
         </div>
       </div>

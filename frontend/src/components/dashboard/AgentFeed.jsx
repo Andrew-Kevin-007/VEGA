@@ -82,7 +82,7 @@ function AgentCard({ entry, index }) {
 
 export default function AgentFeed({ logs = [], isStreaming = false }) {
   const [entries, setEntries] = useState([]);
-  const endRef = useRef();
+  const feedRef = useRef();
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
@@ -107,8 +107,8 @@ export default function AgentFeed({ logs = [], isStreaming = false }) {
   }, [logs]);
 
   useEffect(() => {
-    if (!paused && endRef.current) {
-      endRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (!paused && feedRef.current) {
+      feedRef.current.scrollTop = feedRef.current.scrollHeight;
     }
   }, [entries, paused]);
 
@@ -155,7 +155,7 @@ export default function AgentFeed({ logs = [], isStreaming = false }) {
       </div>
 
       {/* Feed */}
-      <div className="afeed__feed">
+      <div className="afeed__feed" ref={feedRef}>
         {entries.length === 0 ? (
           <div className="afeed__empty">
             <div className="afeed__empty-icon">
@@ -171,7 +171,6 @@ export default function AgentFeed({ logs = [], isStreaming = false }) {
             <AgentCard key={entry.id} entry={entry} index={i} />
           ))
         )}
-        <div ref={endRef} />
       </div>
     </div>
   );
