@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Book, ChevronRight, Hash, Terminal, Cpu, Layers, 
   Workflow, Zap, MessageCircle, HelpCircle, Shield,
-  ExternalLink, Copy, Check
+  ExternalLink, Copy, Check, Scale, ShieldCheck, AlertOctagon,
+  Search, Code2, Database, Share2
 } from 'lucide-react';
 import './DocsPage.css';
 
@@ -14,42 +15,88 @@ const DOCS_SECTIONS = [
     icon: Book,
     content: (
       <div className="docs-content">
-        <h1>Autonomous AI Security with VEGA</h1>
+        <h1>The VEGA Framework</h1>
         <p className="docs-lead">
-          VEGA is an industry-first autonomous penetration testing platform that replaces traditional, 
-          static scanning with a dynamic swarm of specialized AI agents.
+          VEGA is a next-generation autonomous security intelligence platform. 
+          Unlike traditional scanners that rely on static heuristics, VEGA utilizes a 
+          dynamic swarm of reasoning-capable agents to identify complex, logic-based vulnerabilities.
         </p>
         
         <div className="docs-callout docs-callout--info">
           <Shield size={18} />
           <div>
-            <strong>Core Philosophy:</strong> VEGA doesn't just match signatures. 
-            It understands context, formulates hypotheses, and executes state-aware 
-            attacks like a human security engineer.
+            <strong>Automated Reasoning:</strong> VEGA simulates the intuition of a 
+            senior penetration tester by maintaining state across multi-step attack chains.
           </div>
         </div>
 
-        <h2>Why VEGA?</h2>
+        <h2>Core Value Proposition</h2>
         <p>
-          Traditional DAST tools fail in modern Single Page Applications (SPAs) because 
-          they lack state preservation and reasoning. VEGA bridges this gap by utilizing 
-          Playwright for deep-tissue crawling and LLMs for contextual decision making.
+          In the modern era of rapid software delivery, traditional quarterly penetration 
+          testing is a bottleneck. VEGA provides real-time, high-fidelity security data 
+          that integrates directly into the development lifecycle.
         </p>
 
         <div className="docs-grid">
           <div className="docs-feature">
-            <h3>Zero Config</h3>
-            <p>Point at a URL, provide credentials, and let the agents do the rest.</p>
+            <h3>Autonomous Crawling</h3>
+            <p>Maps SPAs and deep API routes with Playwright-backed interception.</p>
           </div>
           <div className="docs-feature">
-            <h3>Machine Speed</h3>
-            <p>Perform complete end-to-end vulnerability analysis in minutes, not weeks.</p>
+            <h3>Zero False Positives</h3>
+            <p>Every finding is mathematically validated via delta-response analysis.</p>
           </div>
           <div className="docs-feature">
-            <h3>Agentic Intelligence</h3>
-            <p>Five specialized agents work in a LangGraph DAG to ensure high accuracy.</p>
+            <h3>Agentic Swarm</h3>
+            <p>Specialized LLM agents collaborate to resolve complex logic flaws.</p>
           </div>
         </div>
+      </div>
+    )
+  },
+  {
+    id: 'arch',
+    title: 'Architecture & Loop',
+    icon: Workflow,
+    content: (
+      <div className="docs-content">
+        <h1>The Agentic Lifecycle</h1>
+        <p>VEGA operates on a cyclic, self-correcting feedback loop powered by LangGraph.</p>
+
+        <div className="docs-callout docs-callout--info">
+          <Share2 size={18} />
+          <div>
+            <strong>The VEGA DAG:</strong> Every scan progresses through a series of "Thought Nodes" where agents pass structured data to one another.
+          </div>
+        </div>
+
+        <h2>1. Discovery (The AppMap)</h2>
+        <p>
+          The Crawler agent navigates the target, identifying every interactive element. 
+          It captures headers, cookies, and parameter types, building a comprehensive 
+          JSON manifest of the application's attack surface.
+        </p>
+
+        <h2>2. Tactical Hypothesis</h2>
+        <p>
+          The Hypothesis Agent performs a semantic audit of the AppMap. It identifies 
+          patterns indicative of common vulnerabilities (e.g., numeric ID parameters 
+          invoking an IDOR hypothesis) and generates specific injection strings.
+        </p>
+
+        <h2>3. Execution & Delta Analysis</h2>
+        <p>
+          The Attacker Agent fires the payloads. The Analyzer Agent then performs a 
+          binary diff between the "Benign Baseline" and the "Attack Response". 
+          This is where VEGA differentiates between a standard error and a 
+          successful exploit.
+        </p>
+
+        <h2>4. Narrative Generation</h2>
+        <p>
+          Finally, the Narrator Agent converts raw HTTP evidence into a technical walkthrough 
+          suitable for executive reporting and developer remediation.
+        </p>
       </div>
     )
   },
@@ -59,171 +106,105 @@ const DOCS_SECTIONS = [
     icon: Zap,
     content: (
       <div className="docs-content">
-        <h1>Getting Started</h1>
-        <p>Launch your first autonomous scan in less than 3 minutes.</p>
+        <h1>Quickstart Guide</h1>
+        <p>Deploy VEGA into your environment and launch your first scan.</p>
 
-        <h2>Prerequisites</h2>
+        <h2>Hardware Requirements</h2>
         <ul>
-          <li><strong>Python 3.10+</strong>: Core logic engine</li>
-          <li><strong>Node.js 18+</strong>: React Dashboard UI</li>
-          <li><strong>Groq API Key</strong>: Low-latency LLM inference</li>
+          <li><strong>CPU</strong>: 4+ Cores (for Playwright parallelization)</li>
+          <li><strong>RAM</strong>: 8GB minimum recommended</li>
+          <li><strong>Network</strong>: Stable outbound HTTPS for LLM inference</li>
         </ul>
 
         <h2>Installation</h2>
-        <p>Clone the repository and install dependencies:</p>
         <div className="docs-code-block">
-          <code>git clone https://github.com/vega-security/vega.git
-cd vega
+          <code>{`# Clone the repository
+git clone https://github.com/vega-security/vega.git
+
+# Install Python backend dependencies
 pip install -r requirements.txt
-cd frontend && npm install</code>
+
+# Install Frontend dashboard
+cd frontend && npm install`}</code>
         </div>
 
         <h2>Environment Configuration</h2>
-        <p>Create a <code>.env</code> file in the root directory:</p>
+        <p>Seed your <code>.env</code> file in the root directory:</p>
         <div className="docs-code-block">
           <code>GROQ_API_KEY="your_gsk_xxx_key"</code>
         </div>
 
-        <h2>Launching VEGA</h2>
-        <p>Run the bundled orchestration script:</p>
+        <h2>Launching</h2>
         <div className="docs-code-block">
-          <code>./start.sh  # Unix/macOS
-start.bat  # Windows</code>
+          <code>./start.sh  # Boot both API and UI</code>
         </div>
       </div>
     )
   },
   {
-    id: 'agent-swarm',
-    title: 'The Agent Swarm',
-    icon: Cpu,
+    id: 'safety',
+    title: 'Safety & Ethics',
+    icon: ShieldCheck,
     content: (
       <div className="docs-content">
-        <h1>The Agent Swarm</h1>
+        <h1>Ethical Boundaries</h1>
+        <p>VEGA is built with strict safety guidelines to ensure responsible security research.</p>
+
+        <div className="docs-callout docs-callout--warning">
+          <AlertOctagon size={18} />
+          <div>
+            <strong>Destructive Actions:</strong> By default, the Hypothesis agent is 
+            constrained from generating "Full Delete" or system-level wipe commands.
+          </div>
+        </div>
+
+        <h2>Compliance Controls</h2>
         <p>
-          VEGA utilizes a decentralized swarm of five specialized AI agents. 
-          Each agent is meticulously prompt-engineered for a specific phase of the 
-          vulnerability lifecycle.
+          VEGA respects <code>robots.txt</code> and allows for explicit endpoint 
+          blacklisting via the configuration panel. It is designed to be run against 
+          Non-Production (Staging/UAT) environments to mitigate any risk of 
+          unintended data mutation in live systems.
         </p>
 
-        <div className="docs-agent-card">
-          <div className="docs-agent-head">
-            <Layers size={20} className="docs-agent-icon docs-agent-icon--blue" />
-            <h3>1. The Crawler Engine</h3>
-          </div>
-          <p>
-            An automated browser agent powered by Playwright. It navigates the target application, 
-            intercepts XHR/API calls, and builds an <em>AppMap</em> context including 
-            authentication state and parameter structures.
-          </p>
-        </div>
-
-        <div className="docs-agent-card">
-          <div className="docs-agent-head">
-            <MessageCircle size={20} className="docs-agent-icon docs-agent-icon--purple" />
-            <h3>2. The Hypothesis Agent</h3>
-          </div>
-          <p>
-            Analyzes the AppMap to predict viable attack surfaces. It doesn't use blind fuzzing; 
-            it reasons about input context to target SQLi, XSS, and IDOR specifically where they 
-            are likely to exist.
-          </p>
-        </div>
-
-        <div className="docs-agent-card">
-          <div className="docs-agent-head">
-            <Hash size={20} className="docs-agent-icon docs-agent-icon--orange" />
-            <h3>3. The Attacker Agent</h3>
-          </div>
-          <p>
-            The executioner. It constructs state-aware HTTP requests, injecting 
-            malicious logic payloads generated based on the active hypotheses.
-          </p>
-        </div>
-
-        <div className="docs-agent-card">
-          <div className="docs-agent-head">
-            <HelpCircle size={20} className="docs-agent-icon docs-agent-icon--red" />
-            <h3>4. The Analyzer Agent</h3>
-          </div>
-          <p>
-            The auditor. Compares the response of the attack against a benign baseline. 
-            It identifies deviations, error signatures, or successful data exfiltration markers.
-          </p>
-        </div>
-
-        <div className="docs-agent-card">
-          <div className="docs-agent-head">
-            <Shield size={20} className="docs-agent-icon docs-agent-icon--green" />
-            <h3>5. The FP-Reducer Agent</h3>
-          </div>
-          <p>
-            The final arbiter. Re-evaluates confirmed findings to ensure they aren't noise 
-            caused by WAF blocks or random server jitter. This ensures a 100% signal-to-noise ratio.
-          </p>
-        </div>
+        <h2>Legal Notice</h2>
+        <p>
+          Users must possess explicit authorization to scan any target URL. VEGA is 
+          not intended for unauthorized testing and includes internal logging for 
+          auditability within enterprise deployments.
+        </p>
       </div>
     )
   },
   {
     id: 'scanning-modes',
-    title: 'Continuous Batching',
-    icon: Workflow,
+    title: 'Operating Modes',
+    icon: Layers,
     content: (
       <div className="docs-content">
-        <h1>Continuous Batching</h1>
-        <p>VEGA scales to large enterprise applications using a chunked execution model.</p>
+        <h1>Scale & Throughput</h1>
+        <p>VEGA provides granular control over how much of your infra is tested at once.</p>
 
-        <h2>Batch Mode (Default)</h2>
+        <h3>1. Incremental Batching (Default)</h3>
         <p>
-          By default, VEGA scans the first 50 discovered endpoints. This protects your 
-          LLM token quota and avoids triggering aggressive rate-limiting on the target. 
-          Once a batch completes, you can review findings and trigger the next 50.
+          The platform operates on a "Batch-of-50" principle. This ensures that 
+          the Crawler doesn't overwhelm the target server and keeps LLM token 
+          expenditure predictable and cost-effective.
         </p>
 
-        <h2>Max Scan Mode</h2>
+        <h3>2. Targeted Max Scan</h3>
         <p>
-          Available in the Dashboard Overview. Checking "MAX SCAN" before triggering the 
-          next batch will cause the agents to sweep the <strong>entirety</strong> of the 
-          remaining application map in a single massive execution run.
+          For critical vulnerability classes (e.g., "Find all SQLi in the app right now"), 
+          the <strong>Max Scan</strong> toggle skips the batch limit. It attempts to 
+          hypothesize and attack every single identified endpoint in a unified sweep.
         </p>
 
-        <div className="docs-callout docs-callout--warning">
-          <HelpCircle size={18} />
+        <div className="docs-callout docs-callout--info">
+          <Search size={18} />
           <div>
-            <strong>Caution:</strong> Max Scan can significantly increase token usage. 
-            Use it when you have identified a high-risk vulnerability class and want 
-            to hunt it across the entire infrastructure.
+            <strong>Tip:</strong> Use Max Scan during final release validation to 
+            ensure comprehensive coverage of known risk profiles.
           </div>
         </div>
-      </div>
-    )
-  },
-  {
-    id: 'cicd',
-    title: 'CI/CD Integration',
-    icon: Terminal,
-    content: (
-      <div className="docs-content">
-        <h1>CI/CD Integration</h1>
-        <p>Integrate VEGA as a security gate in your pipeline.</p>
-        
-        <p>
-          VEGA's API is headless-first. You can trigger scans via a single POST 
-          request and poll the <code>/scan/status</code> endpoint to wait for completion.
-        </p>
-
-        <h3>Example API Call</h3>
-        <div className="docs-code-block">
-          <code>{`curl -X POST http://localhost:8000/scan/start \\
-  -H "Content-Type: application/json" \\
-  -d '{"target_url": "https://staging.myapp.com", "roles": []}'`}</code>
-        </div>
-
-        <p>
-          In a production pipeline, if <code>/scan/vulns</code> returns a list 
-          with length &gt; 0, the build should be automatically terminated.
-        </p>
       </div>
     )
   },
@@ -236,23 +217,23 @@ start.bat  # Windows</code>
         <h1>Frequently Asked Questions</h1>
         
         <div className="docs-faq-item">
-          <h4>Does VEGA store target data?</h4>
-          <p>No. VEGA is designed to run locally or in a private cloud environment. Scan results and AppMaps exist only in memory during execution.</p>
+          <h4>How does VEGA handle Rate Limiting?</h4>
+          <p>VEGA's Crawler agent has a built-in exponential backoff. If the target server begins returning 429 status codes, the agents will automatically throttle execution.</p>
         </div>
 
         <div className="docs-faq-item">
-          <h4>Can it handle Multi-Factor Authentication (MFA)?</h4>
-          <p>Currently, VEGA supports JWT and Cookie-based session state. Direct MFA bypassing is on the 2024 roadmap.</p>
+          <h4>Does it support authenticated scans?</h4>
+          <p>Yes. VEGA simulates a real user session. You can provide multiple roles (Admin, User, Editor) to test for Broken Access Control (BAC) and IDOR vulnerabilities.</p>
         </div>
 
         <div className="docs-faq-item">
-          <h4>Which LLMs does it support?</h4>
-          <p>The current production release is optimized for Groq (Llama-3-70B) due to latency requirements, but can be shimmed for Anthropic or OpenAI easily.</p>
+          <h4>Can I use other LLMs?</h4>
+          <p>VEGA is currently optimized for Llama-3 (Groq) due to its high speed and low latency. Support for Anthropic Claude 3 and OpenAI GPT-4 is currently in preview.</p>
         </div>
 
         <div className="docs-faq-item">
-          <h4>Is it safe for production targets?</h4>
-          <p>VEGA executes real payloads. While the Hypothesis agent tries to avoid destructive logic, we strongly recommend scanning Staging or UAT environments first.</p>
+          <h4>Is my code sent to the LLM?</h4>
+          <p>No. VEGA sends only the endpoint metadata, parameter structures, and HTTP responses. Your source code remains local at all times.</p>
         </div>
       </div>
     )
@@ -262,7 +243,6 @@ start.bat  # Windows</code>
 export default function DocsPage() {
   const [activeTab, setActiveTab] = useState('intro');
 
-  // Smooth scroll to top when tab changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeTab]);

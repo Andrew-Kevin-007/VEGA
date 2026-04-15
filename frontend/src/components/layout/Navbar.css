@@ -73,10 +73,11 @@
 .navbar__link--active::after {
   content: '';
   position: absolute;
-  bottom: -22px;
+  bottom: -4px;
   left: 0; right: 0;
-  height: 1.5px;
+  height: 2.5px;
   background: var(--accent);
+  border-radius: 1px;
 }
 
 /* ── Right CTAs (Anthropic dual-CTA pattern) ── */
