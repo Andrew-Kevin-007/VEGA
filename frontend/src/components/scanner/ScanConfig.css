@@ -128,7 +128,7 @@
   font-weight: 500;
   color: white;
   background: var(--text);
-  border-radius: var(--radius-pill);
+  border-radius: 8px;
   transition: all var(--duration-base) var(--ease-out);
 }
 .scanconfig__submit:hover:not(:disabled) {

@@ -25,7 +25,7 @@ export default function Navbar() {
       <div className="navbar__inner">
 
         <Link to="/" className="navbar__logo" aria-label="VEGA Home">
-          <svg width="26" height="26" viewBox="0 0 40 40" fill="none">
+          <svg width="24" height="24" viewBox="0 0 40 40" fill="none">
             <path d="M20 2L4 14v12l16 12 16-12V14L20 2z" stroke="currentColor" strokeWidth="2.2"/>
             <path d="M20 8l-10 7v8l10 7 10-7v-8L20 8z" stroke="var(--accent)" strokeWidth="1.5"/>
             <circle cx="20" cy="20" r="2.5" fill="var(--accent)"/>
@@ -34,16 +34,16 @@ export default function Navbar() {
         </Link>
 
         <div className={`navbar__links ${mobileOpen ? 'navbar__links--open' : ''}`}>
-          <Link to="/" className={`navbar__link ${isActive('/') ? 'navbar__link--active' : ''}`}>Home</Link>
-          <Link to="/scan" className={`navbar__link ${isActive('/scan') ? 'navbar__link--active' : ''}`}>Scanner</Link>
+          <Link to="/"          className={`navbar__link ${isActive('/') ? 'navbar__link--active' : ''}`}>Home</Link>
+          <Link to="/scan"      className={`navbar__link ${isActive('/scan') ? 'navbar__link--active' : ''}`}>Scanner</Link>
           <Link to="/dashboard" className={`navbar__link ${isActive('/dashboard') ? 'navbar__link--active' : ''}`}>Dashboard</Link>
         </div>
 
+        {/* Single primary CTA — Anthropic style */}
         <div className="navbar__right">
-          <Link to="/dashboard" className="navbar__text-cta">View dashboard</Link>
           <Link to="/scan" className="navbar__pill-cta">
-            Start scan
-            <ArrowRight size={14} strokeWidth={2} />
+            Start scanning
+            <ArrowRight size={13} strokeWidth={2} />
           </Link>
         </div>
 
@@ -58,3 +58,4 @@ export default function Navbar() {
     </nav>
   );
 }
+
