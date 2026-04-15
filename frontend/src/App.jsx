@@ -64,15 +64,7 @@ export default function App() {
             }
           />
           <Route
-            path="/dashboard"
-            element={
-              <AnimatedRoute>
-                <DashboardPage />
-              </AnimatedRoute>
-            }
-          />
-          <Route
-            path="/dashboard/:tab"
+            path="/dashboard/*"
             element={
               <AnimatedRoute>
                 <DashboardPage />

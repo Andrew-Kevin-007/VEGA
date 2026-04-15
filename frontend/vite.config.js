@@ -42,7 +42,7 @@ function backendLauncherPlugin() {
             spawn(
               'cmd.exe',
               [
-                '/c', 'start', '"VEGA Backend"', 'cmd', '/k',
+                '/c', 'start', 'cmd', '/k',
                 `cd /d "${backendDir}" && echo. && echo  VEGA Backend — http://localhost:8000 && echo. && python -m uvicorn api:app --reload --host 0.0.0.0 --port 8000`,
               ],
               { detached: true, stdio: 'ignore', shell: false }
