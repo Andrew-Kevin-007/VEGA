@@ -16,7 +16,7 @@ echo.
 
 :: Start Backend in a new terminal window
 echo [1/2] Starting VEGA Backend (FastAPI)...
-start "VEGA Backend" cmd /k "cd /d d:\VEGA\backend && echo. && echo  VEGA Backend — http://localhost:8000 && echo  API Docs — http://localhost:8000/docs && echo. && python -m uvicorn api:app --reload --host 0.0.0.0 --port 8000"
+start "VEGA Backend" cmd /k "cd /d d:\VEGA && echo. && echo  VEGA Backend — http://localhost:8000 && echo  API Docs — http://localhost:8000/docs && echo. && python -m uvicorn backend.api:app --reload --host 0.0.0.0 --port 8000"
 
 :: Wait a moment for backend to initialize
 timeout /t 3 /nobreak > nul

@@ -5,7 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const backendDir = path.resolve(__dirname, '..', 'backend');
+const rootDir = path.resolve(__dirname, '..');
 
 // Track whether backend was already launched this session
 let launched = false;
@@ -43,14 +43,14 @@ function backendLauncherPlugin() {
               'cmd.exe',
               [
                 '/c', 'start', 'cmd', '/k',
-                `cd /d "${backendDir}" && echo. && echo  VEGA Backend — http://localhost:8000 && echo. && python -m uvicorn api:app --reload --host 0.0.0.0 --port 8000`,
+                `cd /d "${rootDir}" && echo. && echo  VEGA Backend — http://localhost:8000 && echo. && python -m uvicorn backend.api:app --reload --host 0.0.0.0 --port 8000`,
               ],
               { detached: true, stdio: 'ignore', shell: false }
             ).unref();
           } else {
             // macOS: open in Terminal.app
             // Linux: try gnome-terminal then xterm fallback
-            const script = `cd "${backendDir}" && python -m uvicorn api:app --reload`;
+            const script = `cd "${rootDir}" && python -m uvicorn backend.api:app --reload`;
             if (process.platform === 'darwin') {
               spawn('osascript', [
                 '-e', `tell application "Terminal" to do script "${script}"`

@@ -1,3 +1,10 @@
+import sys
+import os
+
+# Add project root to sys.path so modules like shared, core, and agent can be found
+# regardless of what directory the user launches uvicorn from.
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse

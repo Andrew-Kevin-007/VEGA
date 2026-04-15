@@ -12,9 +12,9 @@ ROOT="$(cd "$(dirname "$0")" && pwd)"
 
 # Backend
 echo -e "${YELLOW}[1/2] Starting Backend (FastAPI on :8000)...${NC}"
-osascript -e "tell app \"Terminal\" to do script \"cd '$ROOT/backend' && python -m uvicorn api:app --reload\"" 2>/dev/null || \
-  gnome-terminal -- bash -c "cd '$ROOT/backend' && python -m uvicorn api:app --reload" 2>/dev/null || \
-  (cd "$ROOT/backend" && python -m uvicorn api:app --reload &)
+osascript -e "tell app \"Terminal\" to do script \"cd '$ROOT' && python -m uvicorn backend.api:app --reload\"" 2>/dev/null || \
+  gnome-terminal -- bash -c "cd '$ROOT' && python -m uvicorn backend.api:app --reload" 2>/dev/null || \
+  (cd "$ROOT" && python -m uvicorn backend.api:app --reload &)
 
 sleep 2
 
