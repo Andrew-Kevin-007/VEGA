@@ -6,6 +6,7 @@ import Footer from './components/layout/Footer';
 import LandingPage from './pages/LandingPage';
 import ScanPage from './pages/ScanPage';
 import DashboardPage from './pages/DashboardPage';
+import DocsPage from './pages/DocsPage';
 
 const pageVariants = {
   initial: { opacity: 0, y: 12 },
@@ -60,6 +61,14 @@ export default function App() {
             element={
               <AnimatedRoute>
                 <ScanPage />
+              </AnimatedRoute>
+            }
+          />
+          <Route
+            path="/docs"
+            element={
+              <AnimatedRoute>
+                <DocsPage />
               </AnimatedRoute>
             }
           />

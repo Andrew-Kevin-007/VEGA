@@ -38,6 +38,7 @@ export default function Navbar() {
         <div className={`navbar__links ${mobileOpen ? 'navbar__links--open' : ''}`}>
           <Link to="/"          className={`navbar__link ${isActive('/') ? 'navbar__link--active' : ''}`}>Home</Link>
           <Link to="/scan"      className={`navbar__link ${isActive('/scan') ? 'navbar__link--active' : ''}`}>Scanner</Link>
+          <Link to="/docs"      className={`navbar__link ${isActive('/docs') ? 'navbar__link--active' : ''}`}>Docs</Link>
           <Link to="/dashboard" className={`navbar__link ${isActive('/dashboard') ? 'navbar__link--active' : ''}`}>Dashboard</Link>
         </div>
 
