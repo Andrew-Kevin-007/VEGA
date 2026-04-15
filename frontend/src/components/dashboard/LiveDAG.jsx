@@ -15,13 +15,14 @@ const NODE_COLORS = {
   root:      '#191a1a',
   endpoint:  '#8c8c8c',
   attacking: '#f97316',
+  payload:   '#8e4ec6',
   vuln:      '#e5484d',
   clean:     '#46a758',
 };
 
-const NODE_SIZE = { root: 8, endpoint: 5, attacking: 6, vuln: 7, clean: 5 };
+const NODE_SIZE = { root: 8, endpoint: 5, attacking: 6, payload: 6, vuln: 7, clean: 5 };
 
-export default function LiveDAG({ logs = [], targetUrl = '', isLive = false }) {
+export default function LiveDAG({ logs = [], vulns = [], targetUrl = '', isLive = false }) {
   const fgRef = useRef();
   const [graph, setGraph] = useState({ nodes: [], links: [] });
   const [dimensions, setDimensions] = useState({ w: 800, h: 560 });
@@ -145,15 +146,64 @@ export default function LiveDAG({ logs = [], targetUrl = '', isLive = false }) {
     });
   }, []);
 
+  // Explicitly map payload chains from confirmed vulns
+  useEffect(() => {
+    if (!vulns || vulns.length === 0) return;
+    setGraph(prev => {
+      const newNodes = [...prev.nodes];
+      const newLinks = [...prev.links];
+      let didChange = false;
+
+      vulns.forEach(v => {
+        if (!v.chain || !v.chain.length) return;
+        
+        const vulnNodeId = `vuln_${v.id || v.type}`;
+        const epNodeId = v.chain[0]?.endpoint?.url;
+        const payloadNodeId = `payload_${v.id || v.type}`;
+        
+        // Add Vuln Node
+        if (!nodesMap.current[vulnNodeId]) {
+            const vulnNode = { id: vulnNodeId, label: v.type, type: 'vuln', color: NODE_COLORS.vuln, val: 5, x: Math.random()*200, y: Math.random()*200 };
+            nodesMap.current[vulnNodeId] = vulnNode;
+            newNodes.push(vulnNode);
+            didChange = true;
+        }
+
+        // Add Payload Node (explicit visualization of HOW it was achieved)
+        if (!nodesMap.current[payloadNodeId]) {
+            const rawPayload = v.chain[0].payload;
+            let payloadStr = typeof rawPayload === 'object' ? JSON.stringify(rawPayload) : String(rawPayload);
+            if (payloadStr.length > 25) payloadStr = payloadStr.slice(0, 25) + '…';
+            
+            const payloadNode = { id: payloadNodeId, label: `Payload: ${payloadStr}`, type: 'payload', color: NODE_COLORS.payload, val: 4, x: Math.random()*100, y: Math.random()*100 };
+            nodesMap.current[payloadNodeId] = payloadNode;
+            newNodes.push(payloadNode);
+            didChange = true;
+
+            // Link Endpoint -> Payload
+            if (epNodeId && nodesMap.current[epNodeId]) {
+                newLinks.push({ source: epNodeId, target: payloadNodeId, color: '#f9731660', dashed: true });
+            }
+
+            // Link Payload -> Vuln
+            newLinks.push({ source: payloadNodeId, target: vulnNodeId, color: '#e5484d80' });
+        }
+      });
+      
+      return didChange ? { nodes: newNodes, links: newLinks } : prev;
+    });
+  }, [vulns]);
+
   const paintNode = useCallback((node, ctx, globalScale) => {
     const size = NODE_SIZE[node.type] || 5;
     const label = node.label || node.id;
 
-    // Glow for attacking/vuln
-    if (node.type === 'attacking' || node.type === 'vuln') {
+    // Glow for attacking/payload/vuln
+    if (node.type === 'attacking' || node.type === 'vuln' || node.type === 'payload') {
       ctx.beginPath();
       ctx.arc(node.x, node.y, size + 4, 0, 2 * Math.PI);
-      ctx.fillStyle = node.type === 'attacking' ? '#f9731620' : '#e5484d20';
+      const glowColor = node.type === 'attacking' ? '#f9731620' : node.type === 'payload' ? '#8e4ec620' : '#e5484d20';
+      ctx.fillStyle = glowColor;
       ctx.fill();
     }
 

@@ -185,7 +185,12 @@ async def run_scan(req: ScanRequest, active_vulns: list):
             n_id = vuln["id"]
             nodes.append({"id": n_id, "label": vuln["type"], "type": "vuln"})
             ep_id = f"ep_{n_id}"
-            nodes.append({"id": ep_id, "label": vuln["chain"][0]["endpoint"]["url"], "type": "endpoint"})
+            try:
+                ep_url = vuln["chain"][0]["endpoint"].url
+            except Exception:
+                ep_url = getattr(vuln["chain"][0].endpoint, "url", "Unknown Endpoint")
+                
+            nodes.append({"id": ep_id, "label": ep_url, "type": "endpoint"})
             edges.append({"source": ep_id, "target": n_id, "label": "exploited via"})
 
         scan_state["graph"] = {"nodes": nodes, "edges": edges}

@@ -193,42 +193,43 @@ export default function DashboardPage() {
 
   const content = (
     <Routes>
-      <Route path="/dashboard" element={
+      <Route path="/" element={
         <OverviewTab status={status} endpoints={scanData.endpoints} vulns={scanData.vulns} logs={logs} />
       }/>
-      <Route path="/dashboard/endpoints" element={
+      <Route path="/endpoints" element={
         <div className="dash-tab">
           <TabHeader label="Discovery" title="Discovered Endpoints"
             sub={`${scanData.endpoints.length} endpoints mapped by the Playwright crawler`} />
           <EndpointTable endpoints={scanData.endpoints} />
         </div>
       }/>
-      <Route path="/dashboard/vulns" element={
+      <Route path="/vulns" element={
         <div className="dash-tab">
           <TabHeader label="Security Analysis" title="Confirmed Vulnerabilities"
             sub={`${scanData.vulns.length} findings validated by the analyzer and FP-reduction agents`} />
           <VulnList vulns={scanData.vulns} />
         </div>
       }/>
-      <Route path="/dashboard/graph" element={
+      <Route path="/graph" element={
         <div className="dash-tab">
           <TabHeader label="Attack Graph" title="Live Attack DAG"
             sub="A directed acyclic graph that grows in real time as the crawler discovers endpoints and the attacker tests them" />
           <LiveDAG
             logs={logs}
+            vulns={scanData.vulns}
             targetUrl={targetUrl}
             isLive={status.isScanning}
           />
         </div>
       }/>
-      <Route path="/dashboard/logs" element={
+      <Route path="/logs" element={
         <div className="dash-tab">
           <TabHeader label="Agent Activity" title="Claude-Style Agent Feed"
             sub="Each of VEGA's five AI agents reports its reasoning, tool calls, and findings in real time" />
           <AgentFeed logs={logs} isStreaming={status.isScanning} />
         </div>
       }/>
-      <Route path="/dashboard/report" element={
+      <Route path="/report" element={
         <div className="dash-tab">
           <TabHeader label="Reporting" title="Executive Report"
             sub="AI-narrated vulnerability report — download as PDF or print" />
