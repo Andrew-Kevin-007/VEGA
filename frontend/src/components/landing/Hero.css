@@ -1,63 +1,82 @@
-/* ═══════════════════════════════════════════════════
-   HERO — Exact Anthropic layout replication
-   ═══════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   HERO — Anthropic layout + rAF parallax zoom card
+   ═══════════════════════════════════════════════════════ */
 .hero {
-  padding-top: calc(var(--nav-height) + 90px);
+  padding-top: calc(var(--nav-height) + 96px);
   padding-bottom: 0;
+  overflow: hidden;
 }
 
-/* ── Two-column split (headline | mission) ─────────── */
+/* ── Two-col ─────────────────────────────────────────── */
 .hero__top {
   display: grid;
-  grid-template-columns: 55fr 45fr;
-  gap: 48px;
-  align-items: flex-start;
-  padding-bottom: 72px;
+  grid-template-columns: 52fr 48fr;
+  gap: 72px;
+  align-items: center;
+  padding-bottom: 88px;
 }
 
-/* ── LEFT: Massive headline ─────────────────────────── */
+/* ── LEFT ───────────────────────────────────────────── */
 .hero__left {
   opacity: 0;
   transform: translateY(16px);
-  transition: opacity 600ms var(--ease-out), transform 600ms var(--ease-out);
+  transition: opacity 560ms var(--ease-out),
+              transform 560ms var(--ease-out);
 }
 .hero__left--in { opacity: 1; transform: translateY(0); }
 
 .hero__headline {
   font-family: var(--font-sans);
-  font-size: clamp(2.6rem, 5vw, 4.5rem);
+  font-size: clamp(2.6rem, 4.4vw, 4.6rem);
   font-weight: 800;
-  line-height: 1.0;
-  letter-spacing: -0.03em;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
   color: var(--text);
+  display: flex;
+  flex-direction: column;   /* stack using block spans */
 }
 
-/* Underline decoration on key words — exact Anthropic style */
+/* Each line is a block so underline covers the whole span */
+.hero__line {
+  display: block;
+}
+
+/* ── Animated underline — background-size trick ──────── */
+/* Works perfectly because span is display:inline (default),
+   and each underlined phrase is on its OWN .hero__line block. */
 .hero__ul {
-  text-decoration: underline;
-  text-decoration-thickness: 3px;
-  text-underline-offset: 4px;
-  text-decoration-color: var(--text);
+  background-image: linear-gradient(var(--text), var(--text));
+  background-position: 0 calc(100% + 1px);
+  background-repeat: no-repeat;
+  background-size: 0% 3px;
+  padding-bottom: 3px;
+}
+.hero__ul--drawn {
+  animation: ul-draw 0.6s cubic-bezier(0.22, 0, 0.36, 1) var(--ul-delay, 0s) both;
+}
+@keyframes ul-draw {
+  from { background-size: 0% 3px; }
+  to   { background-size: 100% 3px; }
 }
 
-/* ── RIGHT: Mission text + CTAs ─────────────────────── */
+/* ── RIGHT ──────────────────────────────────────────── */
 .hero__right {
-  padding-top: 8px;
   display: flex;
   flex-direction: column;
   gap: 32px;
   opacity: 0;
-  transform: translateY(14px);
-  transition: opacity 600ms var(--ease-out) 160ms,
-              transform 600ms var(--ease-out) 160ms;
+  transform: translateY(12px);
+  transition: opacity 560ms var(--ease-out) 140ms,
+              transform 560ms var(--ease-out) 140ms;
 }
 .hero__right--in { opacity: 1; transform: translateY(0); }
 
 .hero__mission {
-  font-size: 1rem;
-  line-height: 1.72;
+  font-size: clamp(0.95rem, 1.2vw, 1.05rem);
+  line-height: 1.75;
   color: var(--text-secondary);
   font-style: italic;
+  max-width: 440px;
 }
 
 .hero__actions {
@@ -66,19 +85,17 @@
   gap: 20px;
 }
 
-/* Anthropic-style dark rectangular button */
 .hero__cta-dark {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 20px;
+  padding: 11px 22px;
   font-size: 0.875rem;
   font-weight: 500;
   color: #fff;
   background: var(--text);
-  border-radius: 7px;
-  transition: background 180ms, transform 180ms;
-  white-space: nowrap;
+  border-radius: 8px;
+  transition: background 180ms, transform 160ms;
 }
 .hero__cta-dark:hover { background: var(--accent); transform: translateY(-1px); }
 
@@ -91,79 +108,104 @@
 }
 .hero__cta-ghost:hover { color: var(--text); border-bottom-color: var(--text); }
 
-/* ── Dark card (below hero, full width) ─────────────── */
+/* ── PARALLAX DARK CARD ─────────────────────────────── */
 .hero__card-wrap {
   opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 800ms var(--ease-out) 400ms,
-              transform 800ms var(--ease-out) 400ms;
+  transition: opacity 900ms var(--ease-out) 700ms;
 }
-.hero__card-wrap--in { opacity: 1; transform: translateY(0); }
+.hero__card-wrap--in { opacity: 1; }
 
+/* rAF sets transform and border-radius inline — initial state */
 .hero__card {
   background: #111211;
-  border-radius: 16px 16px 0 0;
+  border-radius: 24px 24px 0 0;
   overflow: hidden;
+  will-change: transform, border-radius, opacity;
+  transform: scale(0.86);
+  transform-origin: center bottom;
+  opacity: 0.5;
+  /* Subtle inner glow */
+  box-shadow: 0 -1px 0 rgba(255,255,255,0.04), inset 0 1px 0 rgba(255,255,255,0.06);
 }
 
 .hero__card-inner {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0;
-  min-height: 380px;
+  min-height: 440px;
 }
 
-/* Left: headline + CTA */
 .hero__card-left {
-  padding: 56px 48px 56px 56px;
+  padding: 56px 48px 52px 56px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 32px;
+  gap: 28px;
   border-right: 1px solid rgba(255,255,255,0.06);
+  justify-content: space-between;
 }
 
 .hero__card-eyebrow {
-  font-size: 0.72rem;
-  font-weight: 500;
+  font-size: 0.68rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.14em;
   color: var(--accent);
 }
 
 .hero__card-title {
   font-family: var(--font-serif);
-  font-size: clamp(1.3rem, 2vw, 1.7rem);
+  font-size: clamp(1.2rem, 1.8vw, 1.6rem);
   font-weight: 400;
-  line-height: 1.38;
-  color: rgba(250,249,246,0.9);
+  line-height: 1.42;
+  color: rgba(250,249,246,0.88);
   flex: 1;
+}
+
+.hero__card-stats {
+  display: flex;
+  gap: 32px;
+}
+.hero__card-stat { display: flex; flex-direction: column; gap: 5px; }
+.hero__card-stat-num {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-inverse);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+.hero__card-stat-label {
+  font-size: 0.68rem;
+  color: rgba(250,249,246,0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  line-height: 1.3;
 }
 
 .hero__card-cta {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   font-size: 0.875rem;
   font-weight: 500;
-  color: rgba(250,249,246,0.6);
-  transition: color 150ms;
+  color: rgba(250,249,246,0.45);
   align-self: flex-start;
+  transition: color 150ms;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding-bottom: 1px;
 }
-.hero__card-cta:hover { color: rgba(250,249,246,0.95); }
+.hero__card-cta:hover { color: rgba(250,249,246,0.9); }
 
-/* Right: Agent terminal */
+/* Terminal */
 .hero__card-right {
-  padding: 32px 40px 32px 40px;
+  padding: 40px 40px;
   display: flex;
   align-items: center;
 }
 
 .hero__terminal {
   width: 100%;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0,0,0,0.5);
   border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.07);
   overflow: hidden;
 }
 
@@ -171,28 +213,29 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 14px;
-  background: rgba(255,255,255,0.03);
+  padding: 11px 16px;
+  background: rgba(255,255,255,0.025);
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 .hero__terminal-bar span {
-  width: 8px; height: 8px;
+  width: 9px; height: 9px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.1);
 }
 .hero__terminal-bar p {
-  font-size: 0.7rem;
-  color: rgba(255,255,255,0.25);
-  margin-left: 6px;
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.2);
+  margin-left: 8px;
   font-family: var(--font-mono);
+  letter-spacing: 0.05em;
 }
 
 .hero__terminal-body {
-  padding: 16px;
+  padding: 18px 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  min-height: 200px;
+  gap: 12px;
+  min-height: 230px;
 }
 
 .hero__agent-line {
@@ -200,36 +243,54 @@
   align-items: flex-start;
   gap: 10px;
   opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 400ms var(--ease-out), transform 400ms var(--ease-out);
+  transform: translateX(-8px);
+  transition: opacity 360ms var(--ease-out), transform 360ms var(--ease-out);
 }
-.hero__agent-line--in { opacity: 1; transform: translateY(0); }
+.hero__agent-line--in { opacity: 1; transform: translateX(0); }
 
 .hero__agent-badge {
   font-family: var(--font-mono);
-  font-size: 0.65rem;
-  font-weight: 600;
-  padding: 2px 8px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 2px 7px;
   border-radius: 4px;
   border: 1px solid;
   white-space: nowrap;
   flex-shrink: 0;
-  margin-top: 1px;
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .hero__agent-text {
   font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: rgba(250,249,246,0.55);
-  line-height: 1.45;
+  font-size: 0.74rem;
+  color: rgba(250,249,246,0.48);
+  line-height: 1.5;
 }
 
-/* ── Responsive ──────────────────────────────────────── */
+.hero__agent-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 14px;
+  border-radius: 1px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  animation: cursor-blink 1s step-end infinite;
+}
+@keyframes cursor-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* ── Responsive ─────────────────────────────────────── */
 @media (max-width: 960px) {
-  .hero__top { grid-template-columns: 1fr; gap: 32px; padding-bottom: 48px; }
-  .hero__headline { font-size: clamp(2.2rem, 7vw, 3.5rem); }
+  .hero__top { grid-template-columns: 1fr; gap: 48px; padding-bottom: 64px; }
+  .hero__headline { font-size: clamp(2.3rem, 7vw, 3.6rem); }
   .hero__card-inner { grid-template-columns: 1fr; }
-  .hero__card-left { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.06); padding: 40px 32px; }
-  .hero__card-right { padding: 32px; }
-  .hero { padding-top: calc(var(--nav-height) + 56px); }
+  .hero__card-left { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 40px 28px; }
+  .hero__card-right { padding: 28px; }
+  .hero { padding-top: calc(var(--nav-height) + 64px); }
+}
+@media (max-width: 600px) {
+  .hero__card-stats { gap: 18px; }
+  .hero__card-stat-num { font-size: 1.3rem; }
+  .hero__card-left { padding: 32px 20px; }
 }

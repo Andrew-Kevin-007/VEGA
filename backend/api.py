@@ -26,7 +26,8 @@ scan_state = {
     "vulns": [],
     "graph": {"nodes": [], "edges": []},
     "logs": [],
-    "report": ""
+    "report": "",
+    "vuln_types": []   # active vuln classes for this scan
 }
 
 # --- Request models ---
@@ -35,22 +36,30 @@ class RoleCredential(BaseModel):
     password: str
     role: str
 
+# All supported vuln class ids (matches frontend VulnSelector)
+ALL_VULN_TYPES = ["sqli", "xss", "idor", "jwt", "rbac", "csrf", "graphql", "logic"]
+
 class ScanRequest(BaseModel):
     target_url: str
     roles: List[RoleCredential]
+    vuln_types: Optional[List[str]] = None  # None = all types
 
 # --- Routes ---
 @app.post("/scan/start")
 async def start_scan(req: ScanRequest):
+    # Resolve active vuln types — default to all
+    active_vulns = req.vuln_types if req.vuln_types else ALL_VULN_TYPES
+
     scan_state["phase"] = "starting"
     scan_state["progress"] = 0
     scan_state["logs"] = []
     scan_state["vulns"] = []
     scan_state["endpoints"] = []
     scan_state["graph"] = {"nodes": [], "edges": []}
+    scan_state["vuln_types"] = active_vulns
 
-    asyncio.create_task(run_scan(req))
-    return {"scan_id": str(uuid.uuid4())}
+    asyncio.create_task(run_scan(req, active_vulns))
+    return {"scan_id": str(uuid.uuid4()), "vuln_types": active_vulns}
 
 @app.get("/scan/status")
 def get_status():
@@ -94,7 +103,7 @@ async def stream_logs():
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 # --- Background scan runner ---
-async def run_scan(req: ScanRequest):
+async def run_scan(req: ScanRequest, active_vulns: list):
     try:
         from shared.models import AppMap, Endpoint, AttackResult
         from agent.agent_loop import build_agent
@@ -104,8 +113,10 @@ async def run_scan(req: ScanRequest):
 
         scan_state["phase"] = "crawling"
         scan_state["progress"] = 10
-        scan_state["current_action"] = "Crawling target application..."
+        vuln_label = ", ".join(active_vulns).upper()
+        scan_state["current_action"] = f"Crawling target — testing: {vuln_label}"
         scan_state["logs"].append(f"Starting scan on {req.target_url}")
+        scan_state["logs"].append(f"Active vulnerability classes: {vuln_label}")
 
         credentials = [RC(username=r.username, password=r.password, role=r.role) for r in req.roles]
         session_store = await login_all_roles(req.target_url, credentials)
@@ -152,7 +163,8 @@ async def run_scan(req: ScanRequest):
             "hypotheses": [],
             "attack_results": [dummy_result],
             "confirmed_vulns": [],
-            "logs": []
+            "logs": [],
+            "vuln_types": active_vulns   # agent receives selected classes
         })
 
         for log in final_state["logs"]:
