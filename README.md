@@ -1,15 +1,28 @@
-# VEGA Security Platform
+<div align="center">
+  <img src="https://img.shields.io/badge/VEGA-Security_Platform-000000?style=for-the-badge&logo=shield" alt="VEGA" />
+  <h1>The Autonomous AI Security Engineer</h1>
+  <p><b>Machine-speed penetration testing. Zero false positives. Enterprise scale.</b></p>
+  
+  [![Status](https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge)](#)
+  [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=FastAPI&logoColor=white)](#)
+  [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](#)
+  [![LangGraph](https://img.shields.io/badge/Powered_by-LangGraph-FF4F00?style=for-the-badge)](#)
+</div>
 
-![VEGA Platform](https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge)
-![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=FastAPI&logoColor=white)
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![LangGraph](https://img.shields.io/badge/LangGraph-FF4F00?style=for-the-badge)
+---
 
-VEGA is an autonomous, AI-driven web application vulnerability scanner. Leveraging the bleeding-edge reasoning capabilities of LLMs within a cyclical LangGraph agentic loop, VEGA can actively crawl, hypothesize, execute, and validate real security payloads against target endpoints with zero human intervention.
+## 🚀 The Missing Link in AppSec
+Modern CI/CD pipelines deploy code multiple times a day, yet traditional penetration testing takes weeks to schedule and costs tens of thousands of dollars. Automated legacy scanners rely strictly on outdated regex signatures, generating massive walls of "False Positives" that security engineers drown in.
 
-## 🧠 System Architecture
+**VEGA fundamentally rewrites this paradigm.** 
 
-VEGA is divided into a robust asynchronous FastAPI backend and a high-performance React (Vite) frontend. The core scanning intelligence is powered by **Five Specialized AI Agents** operating in a directed acyclic graph (DAG):
+By leveraging the bleeding-edge reasoning capabilities of Large Language Models within a cyclical LangGraph agentic loop, VEGA doesn't just "scan" for bugs. It **thinks**. It autonomously crawls complex Single Page Applications, understands business logic, generates stateful attack hypotheses, executes them, and mathematically validates the exploit—all with **zero human intervention**.
+
+---
+
+## 🧠 System Architecture: The Agentic Engine
+
+VEGA’s intelligence is driven by a decentralized swarm of **Five Specialized AI Agents**, executing inside a high-throughput Directed Acyclic Graph (DAG) powered by a robust Python/FastAPI backend and a React (Vite) real-time frontend.
 
 ```mermaid
 graph TD
@@ -19,68 +32,51 @@ graph TD
     classDef check fill:#e5484d,color:#fff,stroke:#dc2626
     classDef report fill:#10b981,color:#fff,stroke:#059669
 
-    A[🌐 Target Web App] -->|Playwright Interception| B(Crawler Engine):::browser
-    B -->|AppMap (Endpoints + Auth)| C(Hypothesis Agent):::agent
+    A[🌐 Target Web App] -->|Playwright Intercept| B[Crawler Engine]:::browser
+    B -->|AppMap Context| C[Hypothesis Agent]:::agent
     
-    C -->|Generate Vectors| D[Attacker Agent]:::exec
-    D -->|Exec Payload & Diff| E{Analyzer Agent}:::check
+    C -->|Synthesized Vectors| D[Attacker Agent]:::exec
+    D -->|Executes Payloads| E{Analyzer Agent}:::check
     
-    E -->|Vuln Suspected| F(FP Reducer Agent):::agent
-    E -->|Clean| C
+    E -->|Deviation Detected| F[FP Reducer Agent]:::agent
+    E -->|Clean Response| C
     
     F -->|False Positive| C
-    F -->|Confirmed Vuln| G[Narrator Agent]:::report
-    G -->|Continuous UI Stream| H((Live Dashboard))
+    F -->|Confirmed Zero-Day| G[Narrator Agent]:::report
+    G -->|Stream to UI| H((Live Dashboard))
 ```
 
-### The Agentic Loop
-1. **Crawler Engine**: Intercepts HTTP traffic using Playwright, mapping forms, inputs, and endpoints intelligently.
-2. **Hypothesis Agent**: LLM analyzes parameters and predicts viable vulnerabilities (SQLi, XSS, IDOR) based on signature structures.
-3. **Attacker Agent**: Reconstructs state-aware HTTP requests securely injecting malicious logic payloads.
-4. **Analyzer Agent**: Compares baseline (benign) HTML/JSON responses strictly against payload responses to detect deviations.
-5. **False Positive Reducer**: Secondary LLM logic filters out noise caused by WAFs, generic 404s, or unstable network anomalies.
-6. **Narrator Agent**: Drafts the executive technical report dynamically.
+### The Autonomous Pipeline
+1. **Crawler Engine**: A headless browser mapping inputs, JWTs, and deep-link API endpoints just like a human navigator.
+2. **Hypothesis Agent**: The primary strategist. Analyzes the `AppMap` to predict viable attack surfaces (SQLi, XSS, Broken Access Control) without relying on blind fuzzing.
+3. **Attacker Agent**: The executioner. Constructs state-aware HTTP protocols to securely inject logic payloads gracefully.
+4. **Analyzer Agent**: The auditor. Runs a strict baseline-diffing algorithm comparing benign HTML responses to post-payload anomalies to detect exact exploit execution.
+5. **False Positive Reducer**: The arbiter. A secondary LLM isolates and rejects noise (e.g., standard WAF blocks or random 500s), ensuring 100% signal-to-noise ratio.
+6. **Narrator Agent**: The reporter. Generates executive-level markdown reports instantly detailing exact attack chains for remediation.
 
 ---
 
-## 🚀 Getting Started
+## ⚡ Core Enterprise Capabilities
 
-### 1. Requirements
-* `Python >= 3.10`
-* `Node.js >= 18`
-* `Groq API Key` (for running the underlying Agent LLM)
+### 🔹 Granular Batch Scanning & "Max Scan" Sweeps
+For expansive enterprise architectures (1,000+ endpoints), VEGA orchestrates **Continuous Dynamic Batching**.
+- **Batch Processing**: Slices the infrastructure into manageable parallel runs (default 50 limit blocks) to bypass target API rate limits and minimize LLM token expenditure.
+- **Max Scan Override**: A single UI toggle natively overrides batch thresholds. It immediately sweeps the *entirety* of the mapped application network for a explicitly targeted vulnerability (e.g., "Find all SQL injection points right now").
 
-### 2. Environment Setup
-
-Create a `.env` file in the root of your project:
-```bash
-GROQ_API_KEY="your_gsk_key_here"
-```
-
-### 3. Installation & Launch (Local)
-We've bundled cross-platform launch scripts.
-
-**Windows:**
-```cmd
-start.bat
-```
-**macOS / Linux:**
-```bash
-chmod +x start.sh
-./start.sh
-```
-This automatically boots the standard **FastAPI backend** on `:8000` and the **Vite React UI** on `:5173`.
+### 🔹 Live Attack Mapping (DAG UI)
+Observe your infrastructure being stress-tested in real-time. The React dashboard renders a living Directed Acyclic Graph, explicitly isolating exactly how your endpoints map natively to their confirmed vulnerabilities via transparent **Payload Inject Nodes**. 
 
 ---
 
-## 🏗️ Production CI/CD Integration
+## 🛠️ Production CI/CD Integration
 
-VEGA is incredibly resilient and optimized for automated deployment pipelines. You can invoke VEGA via its REST API directly from your CI runners to gate releases on security health.
+VEGA is engineered to serve as an immutable security gate inside DevOps pipelines. 
 
-### Example GitHub Actions CI Workflow
+### GitHub Actions Integration Example
+Automate "hacker-level" reasoning against your Staging environment before every merge to `main`.
 
 ```yaml
-name: VEGA Security Gates
+name: VEGA Autonomous Pipeline Defense
 
 on:
   pull_request:
@@ -90,49 +86,45 @@ jobs:
   security-scan:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Spin Up Staging Environment
+      - name: Spin Up Staging Service
         run: docker-compose -f docker-compose.staging.yml up -d
 
-      - name: Run VEGA Headless Scan
+      - name: Trigger VEGA Headless AI Suite
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
-          # Trigger background scan
-          SCAN_ID=$(curl -s -X POST http://vega-server:8000/scan/start \
+          SCAN_ID=$(curl -s -X POST http://vega.cluster.local:8000/scan/start \
             -H "Content-Type: application/json" \
             -d '{"target_url": "http://staging-app:3000", "roles": []}' | jq -r .scan_id)
             
-          # Poll until scanning terminates
+          # Polling execution cycle
           while true; do
-            STATUS=$(curl -s http://vega-server:8000/scan/status | jq -r .phase)
+            STATUS=$(curl -s http://vega.cluster.local:8000/scan/status | jq -r .phase)
             if [ "$STATUS" == "done" ]; then break; fi
             if [ "$STATUS" == "error" ]; then exit 1; fi
             sleep 10
           done
           
-          # Fetch identified confirmed vulnerabilities
-          VULNS_COUNT=$(curl -s http://vega-server:8000/scan/vulns | jq length)
+          VULNS_COUNT=$(curl -s http://vega.cluster.local:8000/scan/vulns | jq length)
           
           if [ "$VULNS_COUNT" -gt 0 ]; then
-            echo "🚨 CI GATE FAILED: $VULNS_COUNT vulnerabilities detected."
+            echo "🚨 Pipeline Blocked: Autonomous Agent detected $VULNS_COUNT novel exploits."
             exit 1
           else
-            echo "✅ ALL ENDPOINTS SECURE."
+            echo "✅ Validation successful. Infrastructure secure."
             exit 0
           fi
 ```
 
-## 🛠️ Continuous Batch Scanning API 
+## 💻 Local Environment Setup
 
-For expansive architectures encompassing hundreds of endpoints, VEGA supports chunked processing to mitigate heavy token overhead via **Continuous Scanning**.
+1. Request your required LLM `GROQ_API_KEY`.
+2. Seed your `.env` configuration file inside the root repository:
+   ```bash
+   GROQ_API_KEY="your_api_key_here"
+   ```
+3. Use our cross-platform orchestration:
+   - **Windows:** Double-click `start.bat`
+   - **Unix/macOS:** Run `./start.sh`
 
-1. `POST /scan/start` initializes the AppMap and evaluates the first **batch of 50 routes**.
-2. `POST /scan/continue` automatically slides the processing window forward, securely evaluating the *next* block of endpoints.
-
-The UI Dashboard elegantly handles this via the **"Attack Next Batch"** mechanism visible directly within the **Overview** execution panel once a subset phase goes idle.
-
----
-*Created by Andrew Kevin. For enterprise deployments, adhere tightly to defined CI orchestration guidelines.*
+The API backbone initializes on `:8000`, hooking immediately into the Dashboard streaming interface on `:5173`. 
