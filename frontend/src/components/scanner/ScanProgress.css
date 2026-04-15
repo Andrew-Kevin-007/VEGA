@@ -1,0 +1,80 @@
+.scanprog {
+  max-width: 640px;
+  margin: var(--space-xl) auto 0;
+}
+
+.scanprog__bar-track {
+  width: 100%;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: var(--space-lg);
+}
+
+.scanprog__bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 600ms var(--ease-out);
+}
+
+.scanprog__phases {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--space-lg);
+}
+
+.scanprog__phase {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.scanprog__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: all var(--duration-base) var(--ease-out);
+}
+
+.scanprog__phase--done .scanprog__dot {
+  background: var(--accent);
+}
+
+.scanprog__phase--active .scanprog__dot {
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-subtle);
+  animation: pulse-dot 1.5s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 4px var(--accent-subtle); }
+  50% { box-shadow: 0 0 0 8px rgba(217, 119, 87, 0.1); }
+}
+
+.scanprog__phase-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  transition: color var(--duration-base) var(--ease-out);
+}
+
+.scanprog__phase--active .scanprog__phase-label {
+  color: var(--accent);
+  font-weight: 600;
+}
+.scanprog__phase--done .scanprog__phase-label {
+  color: var(--text-secondary);
+}
+
+.scanprog__action {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  text-align: center;
+  font-style: italic;
+}

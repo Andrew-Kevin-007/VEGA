@@ -1,0 +1,96 @@
+.vlist {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.vlist__header {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+}
+
+.vlist__title {
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.vlist__filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vlist__filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-wash);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.vlist__filter span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  background: rgba(0,0,0,0.06);
+  border-radius: var(--radius-pill);
+}
+
+.vlist__filter:hover {
+  background: var(--border-light);
+  color: var(--text);
+}
+
+.vlist__filter--active {
+  background: var(--text);
+  color: white;
+}
+.vlist__filter--active span {
+  background: rgba(255,255,255,0.2);
+}
+
+/* Specific highlight colors for active state */
+.vlist__filter--critical.vlist__filter--active { background: var(--critical); }
+.vlist__filter--high.vlist__filter--active { background: var(--high); }
+.vlist__filter--medium.vlist__filter--active { background: var(--medium); color: var(--text); }
+.vlist__filter--medium.vlist__filter--active span { background: rgba(0,0,0,0.1); }
+.vlist__filter--low.vlist__filter--active { background: var(--low); }
+
+.vlist__container {
+  padding: var(--space-lg);
+  background: var(--bg-wash);
+}
+
+.vlist__empty,
+.vlist__empty-filter {
+  padding: var(--space-3xl) var(--space-xl);
+  text-align: center;
+  color: var(--text-secondary);
+}
+.vlist__empty p {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.vlist__empty span { font-size: 0.9rem; }

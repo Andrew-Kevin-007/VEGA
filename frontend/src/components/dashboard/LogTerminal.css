@@ -1,0 +1,110 @@
+.logterm {
+  background: var(--bg-terminal);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 600px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-lg);
+}
+
+.logterm__header {
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.logterm__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-tertiary);
+}
+
+.logterm__pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--terminal-green);
+  box-shadow: 0 0 8px var(--terminal-green);
+  animation: pulse-op 1.5s infinite;
+}
+
+@keyframes pulse-op {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.logterm__actions {
+  display: flex;
+  gap: 12px;
+}
+
+.logterm__btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.logterm__btn:hover {
+  color: var(--text-inverse);
+}
+
+/* ── Body ──────────────────────────────────────────── */
+.logterm__body {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-inverse);
+}
+
+.logterm__empty {
+  color: var(--terminal-dim);
+  font-style: italic;
+  text-align: center;
+  margin-top: var(--space-xl);
+}
+
+.logterm__line {
+  margin-bottom: 4px;
+  word-break: break-all;
+}
+
+.logterm__content {
+  color: var(--terminal-green);
+}
+
+/* Timestamp highlighting hack (assuming format [HH:MM:SS]) */
+.logterm__line:before {
+  content: '';
+  display: inline;
+}
+
+/* Scrollbar for terminal specifically */
+.logterm__body::-webkit-scrollbar {
+  width: 10px;
+}
+.logterm__body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.logterm__body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid var(--bg-terminal);
+  border-radius: var(--radius-pill);
+}
+.logterm__body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}

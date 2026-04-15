@@ -1,0 +1,85 @@
+.how {
+  padding: var(--space-4xl) 0;
+  background: var(--bg-wash);
+}
+
+.how__header {
+  margin-bottom: var(--space-3xl);
+  max-width: 520px;
+}
+
+.how__label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  margin-bottom: var(--space-md);
+}
+
+.how__title {
+  font-family: var(--font-serif);
+  font-size: clamp(1.6rem, 3vw, 2.3rem);
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.how__steps {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-lg);
+}
+
+.how__step {
+  position: relative;
+  padding: var(--space-xl) 0;
+}
+
+.how__step::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--border);
+}
+
+.how__num {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--accent);
+  margin-bottom: var(--space-md);
+}
+
+.how__step-title {
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-weight: 400;
+  color: var(--text);
+  margin-bottom: var(--space-sm);
+}
+
+.how__step-desc {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 900px) {
+  .how__steps {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .how__steps {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .how__step {
+    padding: var(--space-lg) 0;
+  }
+}

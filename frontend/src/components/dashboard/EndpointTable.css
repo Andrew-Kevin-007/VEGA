@@ -1,0 +1,150 @@
+.eptable {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.eptable__header {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+}
+
+.eptable__title {
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.eptable__search {
+  position: relative;
+  width: 260px;
+}
+
+.eptable__search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+}
+
+.eptable__search input {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--bg-wash);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+.eptable__search input:focus {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+  box-shadow: 0 0 0 2px var(--accent-subtle);
+}
+
+/* ── Table ─────────────────────────────────────────── */
+.eptable__container {
+  overflow-x: auto;
+}
+
+.eptable table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.eptable th {
+  padding: 12px 24px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  background: var(--bg-wash);
+  border-bottom: 1px solid var(--border-light);
+  white-space: nowrap;
+}
+
+.eptable td {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: top;
+}
+
+.eptable tr:last-child td { border-bottom: none; }
+.eptable tr:hover td { background: rgba(0,0,0,0.01); }
+
+/* ── Elements ──────────────────────────────────────── */
+.eptable__method {
+  display: inline-block;
+  padding: 4px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 4px;
+}
+.eptable__method--get    { color: #2563eb; background: #eff6ff; }
+.eptable__method--post   { color: #16a34a; background: #f0fdf4; }
+.eptable__method--put    { color: #ea580c; background: #fff7ed; }
+.eptable__method--patch  { color: #d97757; background: #f5ebe4; }
+.eptable__method--delete { color: #dc2626; background: #fef2f2; }
+
+.eptable__url {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.eptable__params,
+.eptable__roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.eptable__param,
+.eptable__role {
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background: var(--bg-wash);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-pill);
+}
+
+.eptable__role {
+  background: white;
+  border-color: var(--border);
+}
+
+.eptable__none {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* ── States ────────────────────────────────────────── */
+.eptable__empty,
+.eptable__empty-filter {
+  padding: var(--space-3xl) var(--space-xl);
+  text-align: center;
+  color: var(--text-secondary);
+}
+.eptable__empty p {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.eptable__empty span { font-size: 0.9rem; }
