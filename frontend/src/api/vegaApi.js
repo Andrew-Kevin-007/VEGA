@@ -1,11 +1,15 @@
 const BASE = 'http://localhost:8000';
 
 export const vegaApi = {
-  startScan: async (targetUrl, roles) => {
+  startScan: async (targetUrl, roles, vulnTypes = null) => {
     const res = await fetch(`${BASE}/scan/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ target_url: targetUrl, roles }),
+      body: JSON.stringify({
+        target_url: targetUrl,
+        roles,
+        ...(vulnTypes && vulnTypes.length ? { vuln_types: vulnTypes } : {}),
+      }),
     });
     return res.json();
   },

@@ -1,0 +1,107 @@
+.vselect {
+  margin-bottom: var(--space-xl);
+}
+
+.vselect__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.vselect__title {
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vselect__toggle-all {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--accent);
+  transition: opacity 150ms;
+}
+.vselect__toggle-all:hover { opacity: 0.7; }
+
+.vselect__hint {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.vselect__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.vselect__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 150ms var(--ease-out);
+}
+.vselect__item:hover { border-color: var(--accent-subtle); }
+.vselect__item--on {
+  border-color: var(--accent-subtle);
+  background: #fef5f1;
+}
+
+.vselect__cb { display: none; }
+
+.vselect__check {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--border);
+  flex-shrink: 0;
+  margin-top: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 150ms;
+  background: transparent;
+}
+.vselect__item--on .vselect__check {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.vselect__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.vselect__label {
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.vselect__desc {
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  line-height: 1.3;
+}
+
+.vselect__selected-count {
+  margin-top: 10px;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

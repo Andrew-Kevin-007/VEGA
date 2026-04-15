@@ -1,21 +1,21 @@
-import { Routes, Route, Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { ArrowRight, AlertTriangle, CheckCircle, Activity } from 'lucide-react';
 import { useScanStatus } from '../hooks/useScanStatus';
-import { useLogStream } from '../hooks/useLogStream';
-import { useScanData } from '../hooks/useScanData';
-import DashboardLayout from '../components/layout/DashboardLayout';
-import StatsOverview from '../components/dashboard/StatsOverview';
-import EndpointTable from '../components/dashboard/EndpointTable';
-import VulnList from '../components/dashboard/VulnList';
-import AttackGraph from '../components/dashboard/AttackGraph';
-import LogTerminal from '../components/dashboard/LogTerminal';
-import ReportViewer from '../components/dashboard/ReportViewer';
-import SeverityChart from '../components/dashboard/SeverityChart';
-import ScanProgress from '../components/scanner/ScanProgress';
-import VulnCard from '../components/dashboard/VulnCard';
+import { useLogStream }  from '../hooks/useLogStream';
+import { useScanData }   from '../hooks/useScanData';
+import DashboardLayout   from '../components/layout/DashboardLayout';
+import StatsOverview     from '../components/dashboard/StatsOverview';
+import EndpointTable     from '../components/dashboard/EndpointTable';
+import VulnList          from '../components/dashboard/VulnList';
+import LiveDAG           from '../components/dashboard/LiveDAG';
+import AgentFeed         from '../components/dashboard/AgentFeed';
+import ReportViewer      from '../components/dashboard/ReportViewer';
+import SeverityChart     from '../components/dashboard/SeverityChart';
+import VulnCard          from '../components/dashboard/VulnCard';
 import './DashboardPage.css';
 
-/* ── Reusable tab header ───────────────────────────── */
+/* ── Tab header ────────────────────────────────────── */
 function TabHeader({ label, title, sub }) {
   return (
     <div className="dash-tab__header">
@@ -26,32 +26,73 @@ function TabHeader({ label, title, sub }) {
   );
 }
 
+/* ── Animated counter ──────────────────────────────── */
+function AnimCounter({ value, suffix = '' }) {
+  const [display, setDisplay] = useState(value);
+  const prev = useRef(value);
+  useEffect(() => {
+    if (value === prev.current) return;
+    const diff = value - prev.current;
+    const steps = Math.min(Math.abs(diff), 12);
+    let i = 0;
+    const tick = setInterval(() => {
+      i++;
+      setDisplay(Math.round(prev.current + (diff * i / steps)));
+      if (i >= steps) { clearInterval(tick); prev.current = value; }
+    }, 40);
+    return () => clearInterval(tick);
+  }, [value]);
+  return <>{display}{suffix}</>;
+}
+
+/* ── Live finding badge ────────────────────────────── */
+function FindingBadge({ vuln, idx }) {
+  const sevColor = { critical:'var(--critical)', high:'var(--high)', medium:'var(--medium)', low:'var(--low)' };
+  const sev = (vuln.severity || 'low').toLowerCase();
+  return (
+    <div className="dash-live-badge" style={{ animationDelay: `${idx * 60}ms` }}>
+      <AlertTriangle size={12} style={{ color: sevColor[sev], flexShrink: 0 }} />
+      <div>
+        <span className="dash-live-badge__name">{vuln.name || vuln.type || 'Vulnerability'}</span>
+        <span className="dash-live-badge__ep">{vuln.endpoint || ''}</span>
+      </div>
+      <span className="dash-live-badge__sev" style={{ color: sevColor[sev] }}>
+        {vuln.severity}
+      </span>
+    </div>
+  );
+}
+
 /* ── Overview tab ──────────────────────────────────── */
-function OverviewTab({ status, endpoints, vulns }) {
-  const isIdle = status.phase === 'idle';
-  const topCritical = vulns.filter(v => (v.severity||'').toLowerCase() === 'critical').slice(0, 3);
-  const topHigh = vulns.filter(v => (v.severity||'').toLowerCase() === 'high').slice(0, 2);
-  const topFindings = [...topCritical, ...topHigh].slice(0, 4);
+function OverviewTab({ status, endpoints, vulns, logs }) {
+  const isIdle    = !status.phase || status.phase === 'idle';
+  const isScanning = status.isScanning;
+  const isDone    = status.isDone;
+  const topFindings = vulns.slice().sort((a, b) => {
+    const order = { critical: 0, high: 1, medium: 2, low: 3 };
+    return (order[(a.severity||'').toLowerCase()] ?? 4) - (order[(b.severity||'').toLowerCase()] ?? 4);
+  }).slice(0, 4);
 
   return (
     <div className="dash-tab">
-      {/* ── Header ── */}
+
+      {/* Header */}
       <div className="dash-tab__header">
         <p className="dash-tab__label">Overview</p>
         <div className="dash-overview-head">
           <div>
-            <h1 className="dash-tab__title">Scan Summary</h1>
-            {status.phase && status.phase !== 'idle' && (
-              <p className="dash-tab__sub">
-                {status.isScanning
-                  ? `Scanning in progress — ${status.current_action || 'Initializing…'}`
-                  : status.isDone
-                  ? 'Scan complete. All findings confirmed and scored.'
-                  : status.isError ? 'Scan encountered an error.' : ''}
-              </p>
-            )}
+            <h1 className="dash-tab__title">
+              {isIdle ? 'Security Dashboard' : isDone ? 'Scan Complete' : 'Scan in Progress'}
+            </h1>
+            <p className="dash-tab__sub">
+              {isIdle
+                ? 'Configure and launch a scan to see real-time results.'
+                : isDone
+                ? `Completed — ${vulns.length} vulnerabilities confirmed across ${endpoints.length} endpoints.`
+                : `${status.current_action || `Phase: ${status.phase}`}`}
+            </p>
           </div>
-          {status.isDone && (
+          {isDone && (
             <Link to="/dashboard/report" className="dash-overview-report-btn">
               Download Report <ArrowRight size={14} />
             </Link>
@@ -59,96 +100,84 @@ function OverviewTab({ status, endpoints, vulns }) {
         </div>
       </div>
 
-      {/* ── Stats ── */}
-      <StatsOverview
-        endpoints={endpoints}
-        vulns={vulns}
-        progress={status.progress}
-        phase={status.phase}
-      />
+      {/* Stats */}
+      <StatsOverview endpoints={endpoints} vulns={vulns} progress={status.progress} phase={status.phase} />
 
-      {/* ── Active scan progress ── */}
-      {status.isScanning && (
-        <div className="dash-tab__progress-box">
-          <ScanProgress
-            phase={status.phase}
-            progress={status.progress}
-            currentAction={status.current_action}
-          />
-        </div>
-      )}
-
-      {/* ── Idle prompt ── */}
+      {/* Idle */}
       {isIdle && endpoints.length === 0 && vulns.length === 0 && (
         <div className="dash-idle">
           <div className="dash-idle__inner">
-            <svg width="48" height="48" viewBox="0 0 40 40" fill="none" className="dash-idle__logo">
-              <path d="M20 2L4 14v12l16 12 16-12V14L20 2z" stroke="var(--border)" strokeWidth="2"/>
-              <path d="M20 8l-10 7v8l10 7 10-7v-8L20 8z" stroke="var(--accent)" strokeWidth="1.5"/>
-              <circle cx="20" cy="20" r="3" fill="var(--accent)"/>
-            </svg>
+            <Activity size={36} strokeWidth={1.5} style={{ color: 'var(--accent)', marginBottom: 16 }} />
             <h2 className="dash-idle__title">No scan running</h2>
-            <p className="dash-idle__desc">
-              Configure a target URL and role credentials to begin scanning.
-              Results populate in real-time as the agents work.
-            </p>
-            <Link to="/scan" className="dash-idle__cta">
-              Configure a scan <ArrowRight size={15} />
-            </Link>
+            <p className="dash-idle__desc">Configure a target URL and credentials to begin. Results populate in real time as each AI agent works through the pipeline.</p>
+            <Link to="/scan" className="dash-idle__cta">Configure a scan <ArrowRight size={15} /></Link>
           </div>
         </div>
       )}
 
-      {/* ── Two-column: findings + chart ── */}
-      {vulns.length > 0 && (
+      {/* Live two-column: findings + activity */}
+      {(isScanning || vulns.length > 0 || endpoints.length > 0) && (
         <div className="dash-overview__grid">
-          <div className="dash-overview__findings">
-            <div className="dash-overview__section-head">
-              <h2 className="dash-tab__section-title">Priority Findings</h2>
-              {vulns.length > 4 && (
-                <Link to="/dashboard/vulns" className="dash-overview__see-all">
-                  See all {vulns.length} <ArrowRight size={13} />
-                </Link>
-              )}
-            </div>
-            {topFindings.length === 0 ? (
-              <div className="dash-tab__empty">No high-priority findings yet.</div>
-            ) : (
-              topFindings.map(v => <VulnCard key={v.id} vuln={v} />)
+
+          {/* Left: priority findings */}
+          <div className="dash-overview__main">
+            {/* Live findings drop-in (only while scanning) */}
+            {isScanning && vulns.length > 0 && (
+              <div className="dash-live-findings">
+                <div className="dash-section-head">
+                  <span className="dash-section-label">Live Findings</span>
+                  <span className="dash-live-pill">
+                    <span className="dash-live-dot" /> {vulns.length} found
+                  </span>
+                </div>
+                {vulns.slice(-6).reverse().map((v, i) => <FindingBadge key={v.id || i} vuln={v} idx={i} />)}
+              </div>
             )}
-          </div>
 
-          <div className="dash-overview__sidebar">
-            <h2 className="dash-tab__section-title" style={{ marginBottom: '16px' }}>
-              Severity Distribution
-            </h2>
-            <SeverityChart vulns={vulns} />
+            {/* Priority findings (static) */}
+            {topFindings.length > 0 && (
+              <div>
+                <div className="dash-section-head">
+                  <span className="dash-section-label">Priority Findings</span>
+                  {vulns.length > 4 && (
+                    <Link to="/dashboard/vulns" className="dash-see-all">See all {vulns.length} <ArrowRight size={12} /></Link>
+                  )}
+                </div>
+                {topFindings.map((v, i) => <VulnCard key={v.id || i} vuln={v} />)}
+              </div>
+            )}
 
+            {/* Endpoints count */}
             {endpoints.length > 0 && (
-              <div className="dash-overview__ep-summary">
-                <div className="dash-overview__ep-head">
-                  <h2 className="dash-tab__section-title">Attack Surface</h2>
-                  <Link to="/dashboard/endpoints" className="dash-overview__see-all">
-                    View all <ArrowRight size={13} />
-                  </Link>
+              <div className="dash-ep-bar">
+                <div className="dash-ep-bar__text">
+                  <span className="dash-ep-bar__num"><AnimCounter value={endpoints.length} /></span>
+                  <span className="dash-ep-bar__label">endpoints discovered</span>
                 </div>
-                <div className="dash-overview__ep-stats">
-                  {['GET','POST','PUT','DELETE'].map(method => {
-                    const count = endpoints.filter(e => e.method === method).length;
-                    if (count === 0) return null;
-                    return (
-                      <div key={method} className="dash-overview__ep-stat">
-                        <span className={`dash-overview__ep-method dash-overview__ep-method--${method.toLowerCase()}`}>
-                          {method}
-                        </span>
-                        <span className="dash-overview__ep-count">{count}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+                <Link to="/dashboard/endpoints" className="dash-see-all">View all <ArrowRight size={12} /></Link>
               </div>
             )}
           </div>
+
+          {/* Right: severity chart + agent feed mini */}
+          <div className="dash-overview__sidebar">
+            {vulns.length > 0 && (
+              <div>
+                <p className="dash-section-label" style={{ marginBottom: 14 }}>Severity Distribution</p>
+                <SeverityChart vulns={vulns} />
+              </div>
+            )}
+
+            {/* Mini agent feed */}
+            <div>
+              <p className="dash-section-label" style={{ marginBottom: 12 }}>
+                Agent Activity
+                {isScanning && <span className="dash-live-pill" style={{ marginLeft: 8 }}><span className="dash-live-dot" /></span>}
+              </p>
+              <AgentFeed logs={logs} isStreaming={isScanning} />
+            </div>
+          </div>
+
         </div>
       )}
     </div>
@@ -160,62 +189,56 @@ export default function DashboardPage() {
   const status   = useScanStatus(true);
   const { logs, clear } = useLogStream(status.isScanning);
   const scanData = useScanData(status.phase);
+  const targetUrl = scanData?.endpoints?.[0]?.url?.split('/').slice(0,3).join('/') || '';
 
   const content = (
     <Routes>
-      <Route
-        path="/dashboard"
-        element={<OverviewTab status={status} endpoints={scanData.endpoints} vulns={scanData.vulns} />}
-      />
-      <Route
-        path="/dashboard/endpoints"
-        element={
-          <div className="dash-tab">
-            <TabHeader label="Discovery" title="Discovered Endpoints" sub={`${scanData.endpoints.length} endpoints mapped by the Playwright crawler`} />
-            <EndpointTable endpoints={scanData.endpoints} />
-          </div>
-        }
-      />
-      <Route
-        path="/dashboard/vulns"
-        element={
-          <div className="dash-tab">
-            <TabHeader label="Security Analysis" title="Confirmed Vulnerabilities" sub={`${scanData.vulns.length} findings validated by the analyzer and false-positive reduction agents`} />
-            <VulnList vulns={scanData.vulns} />
-          </div>
-        }
-      />
-      <Route
-        path="/dashboard/graph"
-        element={
-          <div className="dash-tab">
-            <TabHeader label="Attack Graph" title="Exploitation Map" sub="Force-directed graph of vulnerability-to-endpoint relationships and attack chains" />
-            <AttackGraph graphData={scanData.graph} />
-          </div>
-        }
-      />
-      <Route
-        path="/dashboard/logs"
-        element={
-          <div className="dash-tab">
-            <TabHeader label="Event Stream" title="Live Logs" sub="Real-time output from all five AI agents piped via Server-Sent Events" />
-            <LogTerminal logs={logs} isStreaming={status.isScanning} onClear={clear} />
-          </div>
-        }
-      />
-      <Route
-        path="/dashboard/report"
-        element={
-          <div className="dash-tab">
-            <TabHeader label="Reporting" title="Executive Report" sub="AI-narrated vulnerability report — download as PDF or print" />
-            <ReportViewer
-              markdown={scanData.report}
-              vulns={scanData.vulns}
-              endpoints={scanData.endpoints}
-            />
-          </div>
-        }
-      />
+      <Route path="/dashboard" element={
+        <OverviewTab status={status} endpoints={scanData.endpoints} vulns={scanData.vulns} logs={logs} />
+      }/>
+      <Route path="/dashboard/endpoints" element={
+        <div className="dash-tab">
+          <TabHeader label="Discovery" title="Discovered Endpoints"
+            sub={`${scanData.endpoints.length} endpoints mapped by the Playwright crawler`} />
+          <EndpointTable endpoints={scanData.endpoints} />
+        </div>
+      }/>
+      <Route path="/dashboard/vulns" element={
+        <div className="dash-tab">
+          <TabHeader label="Security Analysis" title="Confirmed Vulnerabilities"
+            sub={`${scanData.vulns.length} findings validated by the analyzer and FP-reduction agents`} />
+          <VulnList vulns={scanData.vulns} />
+        </div>
+      }/>
+      <Route path="/dashboard/graph" element={
+        <div className="dash-tab">
+          <TabHeader label="Attack Graph" title="Live Attack DAG"
+            sub="A directed acyclic graph that grows in real time as the crawler discovers endpoints and the attacker tests them" />
+          <LiveDAG
+            logs={logs}
+            targetUrl={targetUrl}
+            isLive={status.isScanning}
+          />
+        </div>
+      }/>
+      <Route path="/dashboard/logs" element={
+        <div className="dash-tab">
+          <TabHeader label="Agent Activity" title="Claude-Style Agent Feed"
+            sub="Each of VEGA's five AI agents reports its reasoning, tool calls, and findings in real time" />
+          <AgentFeed logs={logs} isStreaming={status.isScanning} />
+        </div>
+      }/>
+      <Route path="/dashboard/report" element={
+        <div className="dash-tab">
+          <TabHeader label="Reporting" title="Executive Report"
+            sub="AI-narrated vulnerability report — download as PDF or print" />
+          <ReportViewer
+            markdown={scanData.report}
+            vulns={scanData.vulns}
+            endpoints={scanData.endpoints}
+          />
+        </div>
+      }/>
     </Routes>
   );
 
