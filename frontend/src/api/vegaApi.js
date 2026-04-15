@@ -11,11 +11,14 @@ export const vegaApi = {
     }
   },
 
-  continueScan: async (vulnTypes = null) => {
+  continueScan: async (vulnTypes = null, maxScan = false) => {
     const res = await fetch(`${BASE}/scan/continue`, { 
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(vulnTypes ? { vuln_types: vulnTypes } : {})
+      body: JSON.stringify({ 
+        vuln_types: vulnTypes,
+        max_scan: maxScan
+      })
     });
     return res.json();
   },

@@ -117,12 +117,14 @@ async def stream_logs():
 
 class ContinueRequest(BaseModel):
     vuln_types: Optional[List[str]] = None
+    max_scan: bool = False
 
 @app.post("/scan/continue")
 async def continue_scan(req: ContinueRequest = None):
     if scan_state["phase"] == "done" and scan_state.get("app_map"):
         if req and req.vuln_types:
             scan_state["vuln_types"] = req.vuln_types
+        scan_state["max_scan"] = req.max_scan if req else False
         # Queue the next batch
         scan_state["phase"] = "starting"
         asyncio.create_task(run_attack_batch())
@@ -186,8 +188,11 @@ async def run_attack_batch():
         if not full_app_map:
             return
             
-        # Extract next up to 50 endpoints
-        batch_endpoints = full_app_map.endpoints[idx : idx + 50]
+        # Compute slice limit based on Max Scan flag
+        import math
+        limit = len(full_app_map.endpoints[idx:]) if scan_state.get("max_scan") else 50
+        
+        batch_endpoints = full_app_map.endpoints[idx : idx + limit]
         if not batch_endpoints:
             scan_state["phase"] = "done"
             scan_state["progress"] = 100

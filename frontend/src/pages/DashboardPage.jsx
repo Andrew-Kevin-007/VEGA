@@ -67,45 +67,67 @@ function FindingBadge({ vuln, idx }) {
 /* ── Batch Action Form ─────────────────────────────── */
 function BatchAction({ status }) {
   const [selectedVuln, setSelectedVuln] = useState('all');
+  const [isMaxScan, setIsMaxScan]       = useState(false);
   
   const handleContinue = () => {
-    vegaApi.continueScan(selectedVuln === 'all' ? null : [selectedVuln]);
+    vegaApi.continueScan(selectedVuln === 'all' ? null : [selectedVuln], isMaxScan);
   };
 
   return (
-    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-      <select 
-         value={selectedVuln} 
-         onChange={e => setSelectedVuln(e.target.value)}
-         style={{ 
-           background: '#191a1a', 
-           color: '#fff', 
-           border: '1px solid rgba(250,249,246,0.2)', 
-           padding: '0 12px', 
-           height: '36px', 
-           borderRadius: '4px', 
-           fontSize: '12px',
-           outline: 'none',
-           cursor: 'pointer'
-         }}
-      >
-        <option value="all">All Vulnerabilities</option>
-        <option value="sqli">SQL Injection</option>
-        <option value="xss">Cross-Site Scripting</option>
-        <option value="idor">IDOR</option>
-        <option value="jwt">JWT Flaws</option>
-        <option value="rbac">Privilege Escalation</option>
-        <option value="csrf">CSRF</option>
-        <option value="logic">Business Logic</option>
-        <option value="graphql">GraphQL Exploits</option>
-      </select>
-      <button 
-        className="dash-overview-report-btn" 
-        onClick={handleContinue}
-        style={{ background: 'var(--accent)', color: '#000', border: 'none', height: '36px' }}
-      >
-        Attack Next Batch ({status.total_endpoints - status.scanned_index} remaining) <ArrowRight size={14} />
-      </button>
+    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', cursor: 'pointer', color: 'rgba(250,249,246,0.7)' }}>
+        <input 
+          type="checkbox" 
+          checked={isMaxScan} 
+          onChange={e => setIsMaxScan(e.target.checked)} 
+          style={{ accentColor: 'var(--accent)' }}
+        />
+        MAX SCAN
+      </label>
+      
+      <div style={{ display: 'flex', gap: '0' }}>
+        <select 
+           value={selectedVuln} 
+           onChange={e => setSelectedVuln(e.target.value)}
+           style={{ 
+             background: '#191a1a', 
+             color: '#fff', 
+             border: '1px solid rgba(250,249,246,0.2)', 
+             borderRight: 'none',
+             padding: '0 12px', 
+             height: '36px', 
+             borderTopLeftRadius: '4px',
+             borderBottomLeftRadius: '4px',
+             fontSize: '12px',
+             outline: 'none',
+             cursor: 'pointer'
+           }}
+        >
+          <option value="all">All Vulnerabilities</option>
+          <option value="sqli">SQL Injection</option>
+          <option value="xss">Cross-Site Scripting</option>
+          <option value="idor">IDOR</option>
+          <option value="jwt">JWT Flaws</option>
+          <option value="rbac">Privilege Escalation</option>
+          <option value="csrf">CSRF</option>
+          <option value="logic">Business Logic</option>
+          <option value="graphql">GraphQL Exploits</option>
+        </select>
+        <button 
+          className="dash-overview-report-btn" 
+          onClick={handleContinue}
+          style={{ 
+            background: 'var(--accent)', 
+            color: '#000', 
+            border: 'none', 
+            height: '36px',
+            borderTopLeftRadius: 0,
+            borderBottomLeftRadius: 0
+          }}
+        >
+          Attack Next Batch ({status.total_endpoints - status.scanned_index} remaining) <ArrowRight size={14} />
+        </button>
+      </div>
     </div>
   );
 }
