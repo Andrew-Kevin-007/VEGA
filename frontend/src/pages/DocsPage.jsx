@@ -209,6 +209,227 @@ cd frontend && npm install`}</code>
     )
   },
   {
+    id: 'api-ref',
+    title: 'API Reference',
+    icon: Code2,
+    content: (
+      <div className="docs-content">
+        <h1>API Reference</h1>
+        <p>VEGA exposes a high-performance REST API for headless orchestration and integration.</p>
+
+        <h3>Endpoint Table</h3>
+        <div className="docs-table-wrapper">
+          <table className="docs-table">
+            <thead>
+              <tr>
+                <th>Method</th>
+                <th>Endpoint</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span className="method method--post">POST</span></td>
+                <td><code>/scan/start</code></td>
+                <td>Initialize a new autonomous scan.</td>
+              </tr>
+              <tr>
+                <td><span className="method method--get">GET</span></td>
+                <td><code>/scan/status</code></td>
+                <td>Fetch current phase, progress, and batch index.</td>
+              </tr>
+              <tr>
+                <td><span className="method method--post">POST</span></td>
+                <td><code>/scan/continue</code></td>
+                <td>Trigger the next batch or Max Scan.</td>
+              </tr>
+              <tr>
+                <td><span className="method method--get">GET</span></td>
+                <td><code>/scan/vulns</code></td>
+                <td>Retrieve all confirmed findings and evidence.</td>
+              </tr>
+              <tr>
+                <td><span className="method method--get">GET</span></td>
+                <td><code>/scan/stream</code></td>
+                <td>Listen to real-time agent thought logs (SSE).</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Schema Detail</h3>
+        <p>A typical <code>/scan/start</code> payload requires a <code>target_url</code> and optional <code>roles</code>:</p>
+        <div className="docs-code-block">
+          <code>{`{
+  "target_url": "https://example.com",
+  "roles": [
+    { "role": "admin", "username": "admin_vega", "password": "***" }
+  ],
+  "vuln_types": ["sqli", "xss"]
+}`}</code>
+        </div>
+      </div>
+    )
+  },
+  {
+    id: 'deployment',
+    title: 'Deployment Guide',
+    icon: Database,
+    content: (
+      <div className="docs-content">
+        <h1>Enterprise Deployment</h1>
+        <p>VEGA is architected for privacy-first, local-first execution environments.</p>
+
+        <h2>Cloud vs. On-Premise</h2>
+        <div className="docs-grid">
+          <div className="docs-feature">
+            <h3>Private Cloud (AWS/GCP)</h3>
+            <p>Deploy as a stateful container cluster. Ensure your VPC allows outbound traffic to LLM providers (Groq/Anthropic/OpenAI).</p>
+          </div>
+          <div className="docs-feature">
+            <h3>On-Premise (Air-gapped)</h3>
+            <p>For strictly air-gapped environments, VEGA can be shimmed to use local inference engines like <strong>Ollama</strong> or <strong>vLLM</strong>.</p>
+          </div>
+        </div>
+
+        <h2>Environment Sealing</h2>
+        <p>
+          In production, we recommend running VEGA in an isolated network segment. 
+          Use the <code>ROLES_ALLOWED</code> configuration to prevent the crawler 
+          from attempting to navigate to sensitive internal identity providers.
+        </p>
+      </div>
+    )
+  },
+  {
+    id: 'advanced',
+    title: 'Advanced Settings',
+    icon: Scale,
+    content: (
+      <div className="docs-content">
+        <h1>Advanced Configuration</h1>
+        <p>Optimize your scanning engine for depth, speed, or cost-efficiency.</p>
+
+        <h3>LLM Token Budgeting</h3>
+        <p>
+          Each scan consumes tokens. You can set the <code>MAX_TOKENS_PER_VULN</code> 
+          in the <code>.env</code> file to prevent the Hypothesis agent from 
+          reloading overly verbose API responses into its context window.
+        </p>
+
+        <h3>State Persistence</h3>
+        <p>
+          By default, VEGA uses in-memory state. For long-running scans (1,000+ endpoints), 
+          you can enable SQLite persistence by setting:
+        </p>
+        <div className="docs-code-block">
+          <code>DATABASE_TYPE="sqlite"</code>
+        </div>
+        
+        <div className="docs-callout docs-callout--info">
+          <Shield size={18} />
+          <div>
+            <strong>Persistent Scans:</strong> Enabling SQLite allows you to resume 
+            crawling after a backend restart without losing the discovered AppMap.
+          </div>
+        </div>
+      </div>
+    )
+  },
+  {
+    id: 'integrations',
+    title: 'Integrations',
+    icon: Share2,
+    content: (
+      <div className="docs-content">
+        <h1>Integrations</h1>
+        <p>Connect VEGA to your existing security stack for automated remediation workflows.</p>
+
+        <div className="docs-grid">
+          <div className="docs-feature">
+            <h3>Slack & MS Teams</h3>
+            <p>Receive real-time alerts for <strong>Critical</strong> and <strong>High</strong> severity findings directly in your security channels.</p>
+          </div>
+          <div className="docs-feature">
+            <h3>Jira & GitHub Issues</h3>
+            <p>Automatically create tickets for confirmed vulnerabilities, including full HTTP evidence and remediation narratives.</p>
+          </div>
+        </div>
+
+        <h2>Webhook Orchestration</h2>
+        <p>
+          VEGA supports generic outbound webhooks. Configure your listener to 
+          receive JSON payloads containing the full <code>VulnReport</code> 
+          schema upon completion of any scan batch.
+        </p>
+      </div>
+    )
+  },
+  {
+    id: 'security-model',
+    title: 'Security & Privacy',
+    icon: Shield,
+    content: (
+      <div className="docs-content">
+        <h1>Security Model</h1>
+        <p>VEGA is designed with a "Local-First" data architecture to protect sensitive infrastructure metadata.</p>
+
+        <h3>Data Redaction</h3>
+        <p>
+          The <strong>FP-Reducer</strong> agent automatically scrubs PII and 
+          sensitive tokens (e.g., JWTs, API Keys) from narrative reports 
+          before they are rendered in the dashboard or exported as PDF.
+        </p>
+
+        <h3>Encryption at Rest</h3>
+        <p>
+          If SQLite persistence is enabled, the <code>vega.db</code> file 
+          should be encrypted using volume-level encryption (e.g., BitLocker 
+          or dm-crypt) as it contains the AppMap context.
+        </p>
+
+        <div className="docs-callout docs-callout--info">
+          <ShieldCheck size={18} />
+          <div>
+            <strong>SOC2 Readiness:</strong> VEGA's logging architecture is designed 
+            to provide full traceability for every attack executed, meeting 
+            standard audit requirements for penetration testing tools.
+          </div>
+        </div>
+      </div>
+    )
+  },
+  {
+    id: 'glossary',
+    title: 'Glossary',
+    icon: HelpCircle,
+    content: (
+      <div className="docs-content">
+        <h1>Glossary of Terms</h1>
+        
+        <div className="docs-faq-item">
+          <h4>Agentic Loop</h4>
+          <p>A self-correcting cycle where multiple specialized AI agents pass state to one another to resolve complex problems.</p>
+        </div>
+
+        <div className="docs-faq-item">
+          <h4>AppMap</h4>
+          <p>The structured JSON manifest of an application's attack surface, including endpoints, parameters, and authentication states.</p>
+        </div>
+
+        <div className="docs-faq-item">
+          <h4>DAST (Dynamic Application Security Testing)</h4>
+          <p>A security testing method that identifies vulnerabilities by interacting with a running application.</p>
+        </div>
+
+        <div className="docs-faq-item">
+          <h4>Delta Analysis</h4>
+          <p>The process of comparing a benign server response to an attack response to find anomalies indicating a successful exploit.</p>
+        </div>
+      </div>
+    )
+  },
+  {
     id: 'faq',
     title: 'FAQs',
     icon: HelpCircle,
@@ -263,6 +484,7 @@ export default function DocsPage() {
                 key={s.id} 
                 className={`docs__nav-item ${activeTab === s.id ? 'docs__nav-item--active' : ''}`}
                 onClick={() => setActiveTab(s.id)}
+                style={{ padding: '12px 14px', marginBottom: '2px' }}
               >
                 <s.icon size={16} strokeWidth={activeTab === s.id ? 2 : 1.5} />
                 <span>{s.title}</span>

@@ -75,7 +75,7 @@
   position: absolute;
   bottom: -4px;
   left: 0; right: 0;
-  height: 2.5px;
+  height: 1.8px;
   background: var(--accent);
   border-radius: 1px;
 }
