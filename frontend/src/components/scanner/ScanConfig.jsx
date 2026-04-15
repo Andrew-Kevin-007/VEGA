@@ -10,6 +10,7 @@ export default function ScanConfig({ onScanStarted }) {
   const [selectedVulns, setSelectedVulns] = useState(ALL_VULNS.map(v => v.id)); // all by default
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState('');
+  const [showRiskModal, setShowRiskModal] = useState(false);
 
   const addRole    = () => setRoles([...roles, { username: '', password: '', role: 'user' }]);
   const removeRole = (i) => { if (roles.length <= 1) return; setRoles(roles.filter((_, idx) => idx !== i)); };
@@ -19,22 +20,43 @@ export default function ScanConfig({ onScanStarted }) {
     setRoles(updated);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    if (!targetUrl.trim()) { setError('Please enter a target URL.'); return; }
-    try { new URL(targetUrl); } catch { setError('Please enter a valid URL (e.g. http://localhost:3000).'); return; }
-    const validRoles = roles.filter(r => r.username && r.password);
-    if (validRoles.length === 0) { setError('Add at least one credential with username and password.'); return; }
+  const isExternalUrl = (url) => {
+    try {
+      const hostname = new URL(url).hostname;
+      return hostname !== 'localhost' && hostname !== '127.0.0.1';
+    } catch { return false; }
+  };
 
+  const executeScan = async () => {
+    setShowRiskModal(false);
     setLoading(true);
+    setError('');
+    const validRoles = roles.filter(r => r.username && r.password);
+    
     try {
       const res = await vegaApi.startScan(targetUrl, validRoles, selectedVulns);
       if (onScanStarted) onScanStarted(res.scan_id);
-    } catch {
-      setError('Failed to start scan. Is the backend running on localhost:8000?');
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to start scan. Check backend status.';
+      setError(msg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError('');
+    if (!targetUrl.trim()) { setError('Please enter a target URL.'); return; }
+    try { new URL(targetUrl); } catch { setError('Please enter a valid URL.'); return; }
+    
+    const validRoles = roles.filter(r => r.username && r.password);
+    if (validRoles.length === 0) { setError('Add at least one credential.'); return; }
+
+    if (isExternalUrl(targetUrl)) {
+      setShowRiskModal(true);
+    } else {
+      executeScan();
     }
   };
 
@@ -103,6 +125,28 @@ export default function ScanConfig({ onScanStarted }) {
       <button type="submit" className="scanconfig__submit" disabled={loading}>
         {loading ? <span className="scanconfig__spinner" /> : <><span>Launch scan</span><ArrowRight size={16} strokeWidth={2} /></>}
       </button>
+
+      {/* Risk Disclosure Modal */}
+      {showRiskModal && (
+        <div className="risk-modal-overlay">
+          <div className="risk-modal">
+            <h3>Warning: Live External Scan</h3>
+            <p>
+              You are about to launch a stateful vulnerability audit against a live external target:
+              <br/><strong>{targetUrl}</strong>
+            </p>
+            <div className="risk-modal__bullets">
+              <p>• VEGA will execute real SQLi, XSS, and logic payloads.</p>
+              <p>• This may trigger Web Application Firewalls (WAFs) or abuse reports.</p>
+              <p>• Ensure you have explicit legal permission to audit this domain.</p>
+            </div>
+            <div className="risk-modal__actions">
+              <button type="button" className="risk-modal__cancel" onClick={() => setShowRiskModal(false)}>Cancel</button>
+              <button type="button" className="risk-modal__confirm" onClick={executeScan}>Acknowledge & Start</button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </form>
   );

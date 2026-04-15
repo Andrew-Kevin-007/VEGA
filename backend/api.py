@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from dotenv import load_dotenv
 import asyncio, uuid, json
+from shared.security_utils import is_safe_url
 
 load_dotenv()
 
@@ -58,6 +59,13 @@ class ScanRequest(BaseModel):
 async def start_scan(req: ScanRequest):
     # Resolve active vuln types — default to all
     active_vulns = req.vuln_types if req.vuln_types else ALL_VULN_TYPES
+
+    # SSRF Protection
+    is_safe, error = is_safe_url(req.target_url)
+    if not is_safe:
+        scan_state["phase"] = "error"
+        scan_state["logs"].append(f"Security Block: {error}")
+        return {"status": "error", "message": error}
 
     scan_state["phase"] = "starting"
     scan_state["progress"] = 0
@@ -212,26 +220,41 @@ async def run_attack_batch():
 
         scan_state["phase"] = "attacking"
         scan_state["progress"] = 50
-        scan_state["current_action"] = "Running attack chain..."
-
-        dummy_result = AttackResult(
-            endpoint=batch_endpoints[0] if batch_endpoints else None,
-            payload={"id": "2"},
-            response_code=200,
-            response_body='{"id":2,"email":"victim@juice-sh.op","role":"customer"}',
-            diff_from_baseline="Length diff: 50 chars."
-        )
+        scan_state["current_action"] = f"Executing attacks on {len(batch_endpoints)} endpoints..."
+        
+        from core.request_engine import execute_attack
+        from core.session_store import SessionStore
+        
+        # Build sessions for this execution
+        session_store = SessionStore()
+        # In a real impl, we would persist sessions from run_scan, but for now we re-use credentials
+        # (This is a simplified re-auth for the batch)
+        
+        attack_results = []
+        for ep_data in batch_endpoints:
+            # Reconstruct Endpoint object from dict if needed, but batch_endpoints are already objects here
+            # Since they come from app_map.endpoints
+            
+            # For each active vuln type, we might want to run multiple payloads.
+            # Here we simplify: trigger a targeted attack for each endpoint.
+            res = await execute_attack(
+                endpoint=ep_data,
+                payload={"test": "vega_payload"}, # The actual payload generation should come from hypotheses
+                session_store=SessionStore(), # Assuming unauth for placeholder, 
+                target_url=full_app_map.target_url
+            )
+            attack_results.append(res)
 
         scan_state["phase"] = "analyzing"
         scan_state["progress"] = 70
-        scan_state["current_action"] = "Analyzing results..."
+        scan_state["current_action"] = "Analyzing results with AI swarm..."
 
         agent = build_agent()
         final_state = agent.invoke({
             "app_map": batch_app_map,
-            "hypotheses": [],
-            "attack_results": [dummy_result] if dummy_result.endpoint else [],
-            "confirmed_vulns": scan_state["vulns"], # carry over previous findings
+            "hypotheses": [], # Hypothesis agent will generate these inside the loop if we restructure
+            "attack_results": attack_results,
+            "confirmed_vulns": scan_state["vulns"], 
             "logs": [],
             "vuln_types": scan_state["vuln_types"]
         })

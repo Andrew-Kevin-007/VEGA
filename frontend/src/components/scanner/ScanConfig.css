@@ -153,6 +153,94 @@
   to { transform: rotate(360deg); }
 }
 
+/* ── Risk Modal ────────────────────────────────────── */
+.risk-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn var(--duration-base) var(--ease-out);
+}
+
+.risk-modal {
+  background: var(--bg);
+  width: 90%;
+  max-width: 480px;
+  padding: var(--space-xl);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2), 
+              0 0 0 1px var(--border);
+}
+
+.risk-modal h3 {
+  margin-top: 0;
+  color: var(--critical);
+  font-size: 1.25rem;
+  margin-bottom: var(--space-md);
+}
+
+.risk-modal p {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.risk-modal__bullets {
+  margin: var(--space-lg) 0;
+  padding: var(--space-md);
+  background: var(--bg-wash);
+  border-radius: 8px;
+}
+
+.risk-modal__bullets p {
+  font-size: 0.85rem;
+  margin-bottom: 6px;
+  color: var(--text-tertiary);
+}
+
+.risk-modal__actions {
+  display: flex;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+}
+
+.risk-modal__cancel {
+  flex: 1;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  transition: background var(--duration-fast);
+}
+
+.risk-modal__cancel:hover {
+  background: var(--bg-wash);
+}
+
+.risk-modal__confirm {
+  flex: 2;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  background: var(--critical);
+  color: white;
+  transition: opacity var(--duration-fast);
+}
+
+.risk-modal__confirm:hover {
+  opacity: 0.9;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 @media (max-width: 640px) {
   .scanconfig__role-row {
     flex-wrap: wrap;
