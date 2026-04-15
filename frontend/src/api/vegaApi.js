@@ -1,6 +1,16 @@
 const BASE = 'http://localhost:8000';
 
 export const vegaApi = {
+  /** Call Vite's dev-server middleware to spawn uvicorn in a new terminal */
+  launchBackend: async () => {
+    try {
+      const res = await fetch('/api/launch-backend', { method: 'POST' });
+      return res.json();
+    } catch {
+      return { status: 'error' };
+    }
+  },
+
   startScan: async (targetUrl, roles, vulnTypes = null) => {
     const res = await fetch(`${BASE}/scan/start`, {
       method: 'POST',

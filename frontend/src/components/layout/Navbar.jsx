@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import { useLaunchAndGo } from '../../hooks/useLaunchAndGo';
 import './Navbar.css';
 
 export default function Navbar() {
@@ -8,6 +9,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const isDashboard = location.pathname.startsWith('/dashboard');
+  const launchAndGo = useLaunchAndGo();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -39,12 +41,12 @@ export default function Navbar() {
           <Link to="/dashboard" className={`navbar__link ${isActive('/dashboard') ? 'navbar__link--active' : ''}`}>Dashboard</Link>
         </div>
 
-        {/* Single primary CTA — Anthropic style */}
+        {/* Single primary CTA — spawns backend then navigates */}
         <div className="navbar__right">
-          <Link to="/scan" className="navbar__pill-cta">
+          <button onClick={launchAndGo} className="navbar__pill-cta">
             Start scanning
             <ArrowRight size={13} strokeWidth={2} />
-          </Link>
+          </button>
         </div>
 
         <button

@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import { useLaunchAndGo } from '../../hooks/useLaunchAndGo';
 import './Hero.css';
 
 export default function Hero() {
@@ -8,6 +10,7 @@ export default function Hero() {
   const cardRef   = useRef(null);
   const wrapRef   = useRef(null);
   const rafRef    = useRef(null);
+  const launchAndGo = useLaunchAndGo();
 
   // Staged entrance: text → underlines → right + card
   useEffect(() => {
@@ -84,10 +87,10 @@ export default function Hero() {
             positive rate.
           </p>
           <div className="hero__actions">
-            <Link to="/scan" className="hero__cta-dark">
+            <button onClick={launchAndGo} className="hero__cta-dark">
               Start scanning
               <ArrowRight size={15} strokeWidth={2} />
-            </Link>
+            </button>
             <Link to="/dashboard" className="hero__cta-ghost">
               View dashboard
             </Link>
@@ -117,9 +120,9 @@ export default function Hero() {
                   </div>
                 ))}
               </div>
-              <Link to="/scan" className="hero__card-cta">
+              <button onClick={launchAndGo} className="hero__card-cta">
                 Run a scan <ArrowRight size={14} strokeWidth={2} />
-              </Link>
+              </button>
             </div>
 
             <div className="hero__card-right">

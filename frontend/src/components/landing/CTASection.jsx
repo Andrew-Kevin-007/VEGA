@@ -1,10 +1,13 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { useReveal } from '../../hooks/useReveal';
+import { useLaunchAndGo } from '../../hooks/useLaunchAndGo';
 import './CTASection.css';
 
 export default function CTASection() {
-  const ref = useReveal();
+  const ref         = useReveal();
+  const launchAndGo = useLaunchAndGo();
+
   return (
     <section className="cta-section" ref={ref}>
       <div className="container">
@@ -22,10 +25,10 @@ export default function CTASection() {
           </div>
 
           <div className="cta-section__right">
-            <Link to="/scan" className="cta-section__primary">
+            <button onClick={launchAndGo} className="cta-section__primary">
               Start scanning
               <ArrowRight size={16} />
-            </Link>
+            </button>
             <Link to="/dashboard" className="cta-section__secondary">
               View live dashboard
             </Link>
