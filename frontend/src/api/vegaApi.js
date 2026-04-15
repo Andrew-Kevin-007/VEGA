@@ -11,8 +11,12 @@ export const vegaApi = {
     }
   },
 
-  continueScan: async () => {
-    const res = await fetch(`${BASE}/scan/continue`, { method: 'POST' });
+  continueScan: async (vulnTypes = null) => {
+    const res = await fetch(`${BASE}/scan/continue`, { 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(vulnTypes ? { vuln_types: vulnTypes } : {})
+    });
     return res.json();
   },
 

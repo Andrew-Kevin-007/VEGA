@@ -115,13 +115,18 @@ async def stream_logs():
             sent += 1
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
+class ContinueRequest(BaseModel):
+    vuln_types: Optional[List[str]] = None
+
 @app.post("/scan/continue")
-async def continue_scan():
+async def continue_scan(req: ContinueRequest = None):
     if scan_state["phase"] == "done" and scan_state.get("app_map"):
+        if req and req.vuln_types:
+            scan_state["vuln_types"] = req.vuln_types
         # Queue the next batch
         scan_state["phase"] = "starting"
         asyncio.create_task(run_attack_batch())
-        return {"status": "continuing"}
+        return {"status": "continuing", "vuln_types": scan_state["vuln_types"]}
     return {"status": "error", "message": "Cannot continue scan"}
 
 # --- Background scan runner ---

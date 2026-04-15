@@ -64,6 +64,52 @@ function FindingBadge({ vuln, idx }) {
   );
 }
 
+/* ── Batch Action Form ─────────────────────────────── */
+function BatchAction({ status }) {
+  const [selectedVuln, setSelectedVuln] = useState('all');
+  
+  const handleContinue = () => {
+    vegaApi.continueScan(selectedVuln === 'all' ? null : [selectedVuln]);
+  };
+
+  return (
+    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+      <select 
+         value={selectedVuln} 
+         onChange={e => setSelectedVuln(e.target.value)}
+         style={{ 
+           background: '#191a1a', 
+           color: '#fff', 
+           border: '1px solid rgba(250,249,246,0.2)', 
+           padding: '0 12px', 
+           height: '36px', 
+           borderRadius: '4px', 
+           fontSize: '12px',
+           outline: 'none',
+           cursor: 'pointer'
+         }}
+      >
+        <option value="all">All Vulnerabilities</option>
+        <option value="sqli">SQL Injection</option>
+        <option value="xss">Cross-Site Scripting</option>
+        <option value="idor">IDOR</option>
+        <option value="jwt">JWT Flaws</option>
+        <option value="rbac">Privilege Escalation</option>
+        <option value="csrf">CSRF</option>
+        <option value="logic">Business Logic</option>
+        <option value="graphql">GraphQL Exploits</option>
+      </select>
+      <button 
+        className="dash-overview-report-btn" 
+        onClick={handleContinue}
+        style={{ background: 'var(--accent)', color: '#000', border: 'none', height: '36px' }}
+      >
+        Attack Next Batch ({status.total_endpoints - status.scanned_index} remaining) <ArrowRight size={14} />
+      </button>
+    </div>
+  );
+}
+
 /* ── Overview tab ──────────────────────────────────── */
 function OverviewTab({ status, endpoints, vulns, logs }) {
   const isIdle    = !status.phase || status.phase === 'idle';
@@ -96,15 +142,9 @@ function OverviewTab({ status, endpoints, vulns, logs }) {
           {isDone && (
             <div style={{ display: 'flex', gap: '12px' }}>
               {status.scanned_index < status.total_endpoints && (
-                <button 
-                  className="dash-overview-report-btn" 
-                  onClick={() => vegaApi.continueScan()}
-                  style={{ background: 'var(--accent)', color: '#000', border: 'none' }}
-                >
-                  Attack Next Batch ({status.total_endpoints - status.scanned_index} remaining) <ArrowRight size={14} />
-                </button>
+                <BatchAction status={status} />
               )}
-              <Link to="/report" className="dash-overview-report-btn">
+              <Link to="/report" className="dash-overview-report-btn" style={{ height: '36px' }}>
                 Download Report <ArrowRight size={14} />
               </Link>
             </div>
