@@ -1,344 +1,138 @@
-# VEGA — AI-Powered Vulnerability Intelligence Platform
+# VEGA Security Platform
 
-> A production-grade, multi-agent security scanning platform that crawls, hypothesizes, attacks, analyzes, and narrates web application vulnerabilities — orchestrated by LangGraph and powered by Groq LLMs.
+![VEGA Platform](https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=FastAPI&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![LangGraph](https://img.shields.io/badge/LangGraph-FF4F00?style=for-the-badge)
 
----
+VEGA is an autonomous, AI-driven web application vulnerability scanner. Leveraging the bleeding-edge reasoning capabilities of LLMs within a cyclical LangGraph agentic loop, VEGA can actively crawl, hypothesize, execute, and validate real security payloads against target endpoints with zero human intervention.
 
-## Overview
+## 🧠 System Architecture
 
-VEGA (Vulnerability Exploitation & Generation Agent) is an autonomous penetration testing platform designed for security researchers and application security teams. It combines a Playwright-based web crawler with a five-agent LLM pipeline to discover, validate, and document vulnerabilities with minimal false positives.
+VEGA is divided into a robust asynchronous FastAPI backend and a high-performance React (Vite) frontend. The core scanning intelligence is powered by **Five Specialized AI Agents** operating in a directed acyclic graph (DAG):
 
-### What makes VEGA different
+```mermaid
+graph TD
+    classDef browser fill:#3b82f6,color:#fff,stroke:#2563eb
+    classDef agent fill:#8b5cf6,color:#fff,stroke:#7c3aed
+    classDef exec fill:#f97316,color:#fff,stroke:#ea580c
+    classDef check fill:#e5484d,color:#fff,stroke:#dc2626
+    classDef report fill:#10b981,color:#fff,stroke:#059669
 
-| Traditional Scanners | VEGA |
-|---|---|
-| Signature-based payload matching | LLM-generated contextual hypotheses |
-| Single-role testing | Multi-role simultaneous testing (RBAC) |
-| Binary pass/fail results | False-positive scoring + narrative explanation |
-| Static reports | Real-time streaming dashboard |
-| Manual chain building | Automatic multi-step attack chains |
-
----
-
-## Architecture
-
-```
-┌──────────────────────────────────────────────────────────┐
-│                     FastAPI Backend                       │
-│  POST /scan/start   GET /scan/status   GET /scan/stream  │
-│  GET /scan/endpoints   GET /scan/vulns   GET /scan/graph │
-└──────────────────────────┬───────────────────────────────┘
-                           │
-          ┌────────────────▼─────────────────┐
-          │         Agent Loop (LangGraph)    │
-          │                                  │
-          │  ┌──────────┐  ┌──────────────┐  │
-          │  │ Hypothesis│  │   Analyzer   │  │
-          │  │  Agent   │──▶│    Agent     │  │
-          │  └──────────┘  └──────┬───────┘  │
-          │                       │          │
-          │  ┌──────────┐  ┌──────▼───────┐  │
-          │  │ Narrator │◀──│  FP Reducer  │  │
-          │  │  Agent   │  │  + Risk Score│  │
-          │  └──────────┘  └──────────────┘  │
-          └────────────────┬─────────────────┘
-                           │
-       ┌───────────────────▼──────────────────────┐
-       │              Core Modules                 │
-       │  Crawler  Auth Handler  Request Engine    │
-       │  DOM Analyzer  RBAC Tester  Chain Builder │
-       └───────────────────┬──────────────────────┘
-                           │
-       ┌───────────────────▼──────────────────────┐
-       │              React Frontend               │
-       │  Landing Page → Scan Config → Dashboard  │
-       │  Endpoints | Vulns | Graph | Logs | Report│
-       └──────────────────────────────────────────┘
+    A[🌐 Target Web App] -->|Playwright Interception| B(Crawler Engine):::browser
+    B -->|AppMap (Endpoints + Auth)| C(Hypothesis Agent):::agent
+    
+    C -->|Generate Vectors| D[Attacker Agent]:::exec
+    D -->|Exec Payload & Diff| E{Analyzer Agent}:::check
+    
+    E -->|Vuln Suspected| F(FP Reducer Agent):::agent
+    E -->|Clean| C
+    
+    F -->|False Positive| C
+    F -->|Confirmed Vuln| G[Narrator Agent]:::report
+    G -->|Continuous UI Stream| H((Live Dashboard))
 ```
 
----
-
-## Features
-
-- 🕷️ **Playwright Web Crawler** — Navigates the target app with authenticated sessions across multiple roles simultaneously
-- 🧠 **LLM Hypothesis Generation** — Groq-powered agent generates targeted attack plans for each discovered endpoint
-- ⚔️ **Multi-Step Attack Chains** — Sequential exploit chains with context injection between steps
-- 🛡️ **Comprehensive Vuln Coverage** — SQLi, XSS (DOM + reflected), CSRF, IDOR, JWT tampering, RBAC bypass, GraphQL injection
-- 🔍 **False-Positive Reduction** — Dedicated agent scores and filters noise before final reporting
-- 📊 **Risk Scoring** — Severity classification: Critical → High → Medium → Low → Info
-- 📝 **Plain-English Narratives** — Every finding includes a step-by-step attacker narrative
-- 🔴 **Real-Time Streaming** — Server-Sent Events stream live scan logs to the dashboard
-- 📈 **Attack Graph** — Force-directed visualization of vulnerability-endpoint relationships
-- 📄 **PDF Report Export** — Printable executive report generated from markdown
+### The Agentic Loop
+1. **Crawler Engine**: Intercepts HTTP traffic using Playwright, mapping forms, inputs, and endpoints intelligently.
+2. **Hypothesis Agent**: LLM analyzes parameters and predicts viable vulnerabilities (SQLi, XSS, IDOR) based on signature structures.
+3. **Attacker Agent**: Reconstructs state-aware HTTP requests securely injecting malicious logic payloads.
+4. **Analyzer Agent**: Compares baseline (benign) HTML/JSON responses strictly against payload responses to detect deviations.
+5. **False Positive Reducer**: Secondary LLM logic filters out noise caused by WAFs, generic 404s, or unstable network anomalies.
+6. **Narrator Agent**: Drafts the executive technical report dynamically.
 
 ---
 
-## Tech Stack
+## 🚀 Getting Started
 
-### Backend
+### 1. Requirements
+* `Python >= 3.10`
+* `Node.js >= 18`
+* `Groq API Key` (for running the underlying Agent LLM)
 
-| Component | Technology |
-|---|---|
-| API Framework | FastAPI |
-| AI Orchestration | LangGraph |
-| LLM Provider | Groq (llama3) |
-| Browser Automation | Playwright |
-| HTTP Client | httpx |
-| Graph Library | networkx |
-| Data Models | Pydantic |
+### 2. Environment Setup
 
-### Frontend
-
-| Component | Technology |
-|---|---|
-| Build Tool | Vite |
-| Framework | React 18 |
-| Routing | React Router v6 |
-| Styling | Vanilla CSS (CSS Modules pattern) |
-| Charts | Chart.js + react-chartjs-2 |
-| Graph Viz | react-force-graph-2d |
-| Markdown | react-markdown |
-| Icons | Lucide React |
-| Fonts | Google Fonts (Newsreader, Inter, JetBrains Mono) |
-
----
-
-## Quick Start
-
-### Prerequisites
-
-- Python 3.11+
-- Node.js 18+
-- A [Groq API key](https://console.groq.com/)
-- A target web application (we recommend [OWASP Juice Shop](https://github.com/juice-shop/juice-shop))
-
-### 1. Clone the Repository
-
+Create a `.env` file in the root of your project:
 ```bash
-git clone https://github.com/your-org/vega.git
-cd vega
+GROQ_API_KEY="your_gsk_key_here"
 ```
 
-### 2. Backend Setup
+### 3. Installation & Launch (Local)
+We've bundled cross-platform launch scripts.
 
+**Windows:**
+```cmd
+start.bat
+```
+**macOS / Linux:**
 ```bash
-# Create and activate virtual environment
-python -m venv .venv
-.venv\Scripts\activate      # Windows
-# source .venv/bin/activate  # Linux/macOS
-
-# Install Python dependencies
-pip install -r requirements.txt
-
-# Install Playwright browsers
-playwright install chromium
-
-# Configure environment
-copy .env.example .env
-# Edit .env and set GROQ_API_KEY=your_key_here
+chmod +x start.sh
+./start.sh
 ```
-
-### 3. Start the Backend
-
-```bash
-uvicorn backend.api:app --host 0.0.0.0 --port 8000 --reload
-```
-
-Backend will be available at `http://localhost:8000`. API docs at `http://localhost:8000/docs`.
-
-### 4. Frontend Setup
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontend will be available at `http://localhost:5173`.
-
-### 5. Start a Scan
-
-1. Open `http://localhost:5173`
-2. Click **Start scanning** or navigate to **Scanner**
-3. Enter your target URL (e.g., `http://localhost:3000`)
-4. Add role credentials (username, password, role)
-5. Click **Start scan**
-6. Watch the real-time dashboard populate
+This automatically boots the standard **FastAPI backend** on `:8000` and the **Vite React UI** on `:5173`.
 
 ---
 
-## Setting Up a Test Target (OWASP Juice Shop)
+## 🏗️ Production CI/CD Integration
 
-The easiest way to test VEGA is against [OWASP Juice Shop](https://github.com/juice-shop/juice-shop):
+VEGA is incredibly resilient and optimized for automated deployment pipelines. You can invoke VEGA via its REST API directly from your CI runners to gate releases on security health.
 
-```bash
-# Via Docker
-docker run -d -p 3000:3000 bkimminich/juice-shop
+### Example GitHub Actions CI Workflow
 
-# Or via npm
-npm install -g @juice-shop/juice-shop
-juice-shop
+```yaml
+name: VEGA Security Gates
+
+on:
+  pull_request:
+    branches: [ "main", "production" ]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Spin Up Staging Environment
+        run: docker-compose -f docker-compose.staging.yml up -d
+
+      - name: Run VEGA Headless Scan
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          # Trigger background scan
+          SCAN_ID=$(curl -s -X POST http://vega-server:8000/scan/start \
+            -H "Content-Type: application/json" \
+            -d '{"target_url": "http://staging-app:3000", "roles": []}' | jq -r .scan_id)
+            
+          # Poll until scanning terminates
+          while true; do
+            STATUS=$(curl -s http://vega-server:8000/scan/status | jq -r .phase)
+            if [ "$STATUS" == "done" ]; then break; fi
+            if [ "$STATUS" == "error" ]; then exit 1; fi
+            sleep 10
+          done
+          
+          # Fetch identified confirmed vulnerabilities
+          VULNS_COUNT=$(curl -s http://vega-server:8000/scan/vulns | jq length)
+          
+          if [ "$VULNS_COUNT" -gt 0 ]; then
+            echo "🚨 CI GATE FAILED: $VULNS_COUNT vulnerabilities detected."
+            exit 1
+          else
+            echo "✅ ALL ENDPOINTS SECURE."
+            exit 0
+          fi
 ```
 
-**Recommended credentials for Juice Shop:**
+## 🛠️ Continuous Batch Scanning API 
 
-| Role | Username | Password |
-|---|---|---|
-| admin | `admin@juice-sh.op` | `admin123` |
-| user | `jim@juice-sh.op` | `ncc-1701` |
-| guest | `bender@juice-sh.op` | `OhG0dPlease1` |
+For expansive architectures encompassing hundreds of endpoints, VEGA supports chunked processing to mitigate heavy token overhead via **Continuous Scanning**.
+
+1. `POST /scan/start` initializes the AppMap and evaluates the first **batch of 50 routes**.
+2. `POST /scan/continue` automatically slides the processing window forward, securely evaluating the *next* block of endpoints.
+
+The UI Dashboard elegantly handles this via the **"Attack Next Batch"** mechanism visible directly within the **Overview** execution panel once a subset phase goes idle.
 
 ---
-
-## API Reference
-
-| Endpoint | Method | Body | Description |
-|---|---|---|---|
-| `/scan/start` | POST | `{ target_url, roles: [{username, password, role}] }` | Start a new scan |
-| `/scan/status` | GET | — | Current phase, progress percentage, action string |
-| `/scan/endpoints` | GET | — | Array of discovered endpoints |
-| `/scan/vulns` | GET | — | Array of confirmed vulnerabilities |
-| `/scan/graph` | GET | — | Attack graph `{ nodes, edges }` |
-| `/scan/report` | GET | — | Markdown report string |
-| `/scan/stream` | GET | — | SSE stream of real-time log lines |
-
-### Scan Status Phases
-
-```
-idle → starting → crawling → hypothesizing → attacking → analyzing → done
-                                                                    ↓
-                                                                  error
-```
-
-### Vulnerability Object Shape
-
-```json
-{
-  "id": "vuln_001",
-  "type": "SQL Injection",
-  "severity": "Critical",
-  "fp_score": 0.12,
-  "narrative": "An attacker can bypass authentication by injecting...",
-  "evidence": "id=1' OR '1'='1",
-  "chain": [
-    {
-      "endpoint": { "url": "/api/login", "method": "POST" },
-      "payload": { "email": "' OR 1=1--", "password": "x" },
-      "response_code": 200
-    }
-  ]
-}
-```
-
----
-
-## Project Structure
-
-```
-vega/
-├── backend/
-│   └── api.py              # FastAPI app + scan state management
-├── agent/
-│   ├── agent_loop.py       # LangGraph workflow orchestration
-│   ├── hypothesis.py       # Attack hypothesis generator
-│   ├── analyzer.py         # Vulnerability confirmation agent
-│   ├── fp_reducer.py       # False-positive scoring agent
-│   ├── risk_scorer.py      # Severity classification agent
-│   └── narrator.py         # Plain-English narrative generator
-├── core/
-│   ├── crawler.py          # Playwright web crawler
-│   ├── auth_handler.py     # Multi-role authentication
-│   ├── request_engine.py   # HTTP request execution + diffing
-│   ├── chain_builder.py    # Multi-step attack chain builder
-│   ├── vuln_checks.py      # Payload database (SQLi, XSS, etc.)
-│   ├── dom_analyzer.py     # DOM-based XSS detection
-│   ├── rbac_tester.py      # RBAC violation testing
-│   └── graphql_tester.py   # GraphQL security testing
-├── shared/
-│   └── models.py           # Shared Pydantic data models
-├── frontend/
-│   ├── index.html
-│   ├── package.json
-│   ├── vite.config.js
-│   └── src/
-│       ├── api/
-│       │   └── vegaApi.js       # Backend API client
-│       ├── hooks/
-│       │   ├── useScanStatus.js # Polling hook
-│       │   ├── useLogStream.js  # SSE hook
-│       │   ├── useScanData.js   # Data fetching hook
-│       │   └── useReveal.js     # Scroll reveal hook
-│       ├── components/
-│       │   ├── layout/          # Navbar, Sidebar, Footer, DashboardLayout
-│       │   ├── landing/         # Hero, Features, HowItWorks
-│       │   ├── scanner/         # ScanConfig, ScanProgress
-│       │   └── dashboard/       # StatsOverview, EndpointTable, VulnCard,
-│       │                        # VulnList, AttackGraph, LogTerminal,
-│       │                        # SeverityChart, ReportViewer
-│       └── pages/
-│           ├── LandingPage.jsx
-│           ├── ScanPage.jsx
-│           └── DashboardPage.jsx
-└── README.md
-```
-
----
-
-## Configuration
-
-Create a `.env` file in the project root:
-
-```env
-# Required
-GROQ_API_KEY=your_groq_api_key_here
-
-# Optional overrides
-CRAWL_MAX_DEPTH=3
-CRAWL_MAX_PAGES=50
-REQUEST_TIMEOUT=30
-ATTACK_CONCURRENCY=5
-```
-
----
-
-## Development
-
-### Running Tests
-
-```bash
-# Backend unit tests
-pytest tests/ -v
-
-# Frontend build check
-cd frontend
-npm run build
-```
-
-### Code Style
-
-- Python: `black` + `ruff`
-- JavaScript: ESLint (Vite default config)
-
----
-
-## Security & Ethics
-
-> ⚠️ **VEGA is intended exclusively for authorized security testing.**
->
-> Only use VEGA against applications you own or have explicit written permission to test. Unauthorized penetration testing is illegal in most jurisdictions. The authors are not responsible for any misuse of this software.
-
----
-
-## License
-
-MIT License — see [LICENSE](LICENSE) for details.
-
----
-
-## Acknowledgements
-
-- [LangGraph](https://github.com/langchain-ai/langgraph) — Agent orchestration
-- [Groq](https://groq.com/) — LLM inference
-- [Playwright](https://playwright.dev/) — Browser automation
-- [OWASP Juice Shop](https://github.com/juice-shop/juice-shop) — Test target
-- [Anthropic](https://anthropic.com/) — Design inspiration
+*Created by Andrew Kevin. For enterprise deployments, adhere tightly to defined CI orchestration guidelines.*
