@@ -73,6 +73,7 @@ async def start_scan(req: ScanRequest):
     return {"scan_id": str(uuid.uuid4()), "vuln_types": active_vulns}
 
 @app.get("/scan/status")
+def get_status():
     return {
         "phase": scan_state["phase"],
         "progress": scan_state["progress"],
