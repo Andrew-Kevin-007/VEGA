@@ -1,9 +1,9 @@
 <div align="center">
   <img src="https://img.shields.io/badge/VEGA-Security_Platform-000000?style=for-the-badge&logo=shield" alt="VEGA" />
   <h1>The Autonomous AI Security Engineer</h1>
-  <p><b>Machine-speed penetration testing. Zero false positives. Enterprise scale.</b></p>
+  <p><b>Machine-speed penetration testing for web apps. A working prototype.</b></p>
   
-  [![Status](https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge)](#)
+  [![Status](https://img.shields.io/badge/Status-Prototype-orange?style=for-the-badge)](#)
   [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=FastAPI&logoColor=white)](#)
   [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](#)
   [![LangGraph](https://img.shields.io/badge/Powered_by-LangGraph-FF4F00?style=for-the-badge)](#)
@@ -51,15 +51,15 @@ graph TD
 2. **Hypothesis Agent**: The primary strategist. Analyzes the `AppMap` to predict viable attack surfaces (SQLi, XSS, Broken Access Control) without relying on blind fuzzing.
 3. **Attacker Agent**: The executioner. Constructs state-aware HTTP protocols to securely inject logic payloads gracefully.
 4. **Analyzer Agent**: The auditor. Runs a strict baseline-diffing algorithm comparing benign HTML responses to post-payload anomalies to detect exact exploit execution.
-5. **False Positive Reducer**: The arbiter. A secondary LLM isolates and rejects noise (e.g., standard WAF blocks or random 500s), ensuring 100% signal-to-noise ratio.
+5. **False Positive Reducer**: The arbiter. A secondary LLM isolates and rejects noise (e.g., standard WAF blocks or random 500s), to cut noise before it reaches the report.
 6. **Narrator Agent**: The reporter. Generates executive-level markdown reports instantly detailing exact attack chains for remediation.
 
 ---
 
-## ⚡ Core Enterprise Capabilities
+## ⚡ Core Capabilities
 
 ### 🔹 Granular Batch Scanning & "Max Scan" Sweeps
-For expansive enterprise architectures (1,000+ endpoints), VEGA orchestrates **Continuous Dynamic Batching**.
+For large targets (1,000+ endpoints), VEGA is designed to use **Continuous Dynamic Batching**.
 - **Batch Processing**: Slices the infrastructure into manageable parallel runs (default 50 limit blocks) to bypass target API rate limits and minimize LLM token expenditure.
 - **Max Scan Override**: A single UI toggle natively overrides batch thresholds. It immediately sweeps the *entirety* of the mapped application network for a explicitly targeted vulnerability (e.g., "Find all SQL injection points right now").
 
